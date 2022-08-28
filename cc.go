@@ -1,9 +1,9 @@
 package cc
 
 import (
-	"cc-go/computer"
-	"cc-go/connection"
 	"github.com/gorilla/websocket"
+	"github.com/m4schini/cc-go/computer"
+	"github.com/m4schini/cc-go/connection"
 	"log"
 	"net/http"
 )
