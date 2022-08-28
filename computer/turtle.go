@@ -1,10 +1,10 @@
 package computer
 
 import (
-	"cc-go/connection"
 	"context"
 	"errors"
 	"fmt"
+	"github.com/m4schini/cc-go/connection"
 	"io"
 	"time"
 )

@@ -1,8 +1,8 @@
 package cc
 
 import (
-	"cc-go/computer"
 	"fmt"
+	"github.com/m4schini/cc-go/computer"
 	"log"
 	"testing"
 )

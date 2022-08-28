@@ -1,7 +1,7 @@
 package computer
 
 import (
-	"cc-go/connection"
+	"github.com/m4schini/cc-go/connection"
 )
 
 func MakeTurtle(conn connection.Connection) *turtle {
