@@ -97,9 +97,12 @@ func handleHandshake(wsc *websocketConnection) (HandshakeData, error) {
 	}
 
 	var idAsInt int64
-	_, ok := handshakeMessage["id"]
+	id, ok := handshakeMessage["id"]
 	if ok {
-		//idAsInt = id.(int64) //TODO
+		idAsFloat, ok := id.(float64)
+		if !ok {
+			idAsInt = int64(idAsFloat)
+		}
 	}
 
 	return HandshakeData{
