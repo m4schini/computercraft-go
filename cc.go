@@ -4,7 +4,6 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/m4schini/cc-go/computer"
 	"github.com/m4schini/cc-go/connection"
-	"log"
 	"net/http"
 )
 
@@ -30,16 +29,16 @@ func OnTurtleConnected(f func(id string, t computer.Turtle)) {
 }
 
 func connectTurtleHandler(w http.ResponseWriter, r *http.Request) {
-	log.Println("incoming connection")
+	//log.Println("incoming connection")
 	c, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Print("upgrade:", err)
+		//log.Print("upgrade:", err)
 		return
 	}
 
 	conn, err := connection.NewWebsocketConnection(c, r.RemoteAddr)
 	if err != nil {
-		log.Println(err)
+		//log.Println(err)
 		return
 	}
 

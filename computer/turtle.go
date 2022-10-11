@@ -39,6 +39,10 @@ type Turtle interface {
 	ItemSpace(slot int) (int, error)
 	//ItemDetail gets detailed information about the items in the given slot.
 	ItemDetail(slot int, detailed bool) (map[string]interface{}, error)
+	//CompareTo compares the item in the currently selected slot to the item in another slot.
+	CompareTo(slot int) (bool, error)
+	//TransferTo moves an item from the selected slot to another one.
+	TransferTo(slot, count int) (bool, error)
 
 	//Detect checks if there is a solid block in front of the turtle. In this case,
 	//solid refers to any non-air or liquid block.
@@ -78,6 +82,7 @@ type Turtle interface {
 
 	io.Closer
 	Computer
+	Settings
 	GPS
 }
 
@@ -343,6 +348,14 @@ func (t *turtle) ItemDetail(slot int, detailed bool) (map[string]interface{}, er
 	panic("implement me")
 }
 
+func (t *turtle) CompareTo(slot int) (bool, error) {
+	return t._doActionBool(fmt.Sprintf("turtle.compareTo(%v)", slot))
+}
+
+func (t *turtle) TransferTo(slot, count int) (bool, error) {
+	return t._doActionBool(fmt.Sprintf("turtle.transferTo(%v,%v)", slot, count))
+}
+
 func (t *turtle) Compare() (bool, error) {
 	return t._doActionBool("turtle.compare()")
 }
@@ -421,7 +434,7 @@ func (t *turtle) _doInspect(command string) (bool, Block, error) {
 		return false, nil, rpcErr(errors.New("unexpected datatype"))
 	}
 
-	return ok && detectedBlock, data, nil
+	return detectedBlock, data, nil
 }
 
 func (t *turtle) Inspect() (bool, Block, error) {
@@ -483,4 +496,56 @@ func (t *turtle) Locate() (int, int, int, error) {
 
 func (t *turtle) LocateWithTimeout(timeout time.Duration) (int, int, int, error) {
 	return t._doLocate(timeout, false)
+}
+
+func (t *turtle) Define(name string, option ...SettingsOption) error {
+	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.define(\"%s\")", name))
+	return err
+}
+
+func (t *turtle) Undefine(name string) error {
+	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.undefine(\"%s\")", name))
+	return err
+}
+
+func (t *turtle) Set(name, value string) error {
+	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.set(\"%s\", \"%s\")", name, value))
+	return err
+}
+
+func (t *turtle) Unset(name string) error {
+	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.unset(\"%s\")", name))
+	return err
+}
+
+func (t *turtle) Get(name string) (string, error) {
+	res, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.set(\"%s\")", name))
+	if err != nil {
+		return "", err
+	}
+	str, ok := res[0].(string)
+	if !ok {
+		return "", errors.New("not a string")
+	}
+	return str, nil
+}
+
+func (t *turtle) Clear() error {
+	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.clear()"))
+	return err
+}
+
+func (t *turtle) Names() ([]string, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *turtle) Load(path string) (bool, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t *turtle) Save(path string) (bool, error) {
+	//TODO implement me
+	panic("implement me")
 }

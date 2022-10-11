@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/gorilla/websocket"
 	"io"
-	"log"
 	"strings"
 )
 
@@ -139,13 +138,21 @@ func startConnectionLoop(ctx context.Context, ws *websocket.Conn) chan<- *Messag
 			var responseJson = make([]interface{}, 0)
 			err = ws.ReadJSON(&responseJson)
 			if err != nil {
+				switch err.(type) {
+				case *websocket.CloseError:
+					//log.Println("CONNECTION CLOSED")
+					return
+				default:
+					//log.Printf("err: %T %v\n", err, err)
+					//log.Printf("empty respond to \"%v\"\n", message.Instruction)
+					message.OnResponse <- make([]interface{}, 0)
+					continue
+				}
 				//errorCh <- &ConnError{
 				//	Message: message,
 				//	Error:   err,
 				//}
-				log.Printf("empty respond to \"%v\"\n", message.Instruction)
-				message.OnResponse <- make([]interface{}, 0)
-				continue
+
 			}
 
 			//log.Printf("response to \"%v\": [%T]%v\n", message.Instruction, responseJson[0], responseJson)

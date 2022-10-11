@@ -5,6 +5,7 @@ import (
 	"github.com/m4schini/cc-go/computer"
 	"log"
 	"testing"
+	"time"
 )
 
 func TestServe(t *testing.T) {
@@ -54,6 +55,28 @@ func TestServe(t *testing.T) {
 			t.Forward()
 		}
 		t.TurnRight()
+	})
+
+	t.Fatal(Serve("0.0.0.0:8080"))
+}
+
+func TestReconnectM(t *testing.T) {
+	OnTurtleConnected(func(id string, turtle computer.Turtle) {
+		go func(turtle computer.Turtle) {
+			t.Log("new turtle connected:")
+			for true {
+				rid, err1 := turtle.ComputerId()
+				label, err2 := turtle.ComputerLabel()
+				x, y, z, err3 := turtle.LocateWithTimeout(1 * time.Second)
+				if err1 != nil || err2 != nil || err3 != nil {
+					t.Log(id, err1, err2, err3)
+				} else {
+					t.Logf("turtle is still alive: %v=%v (%v %v %v)", rid, label, x, y, z)
+				}
+
+				time.Sleep(5 * time.Second)
+			}
+		}(turtle)
 	})
 
 	t.Fatal(Serve("0.0.0.0:8080"))
