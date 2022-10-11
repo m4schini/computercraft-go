@@ -3,12 +3,14 @@ package connection
 import (
 	"context"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"io"
 	"strings"
 )
 
 type Connection interface {
+	UUID() string
 	Execute(ctx context.Context, command string) ([]interface{}, error)
 	Handshake() HandshakeData
 	io.Closer
@@ -20,11 +22,16 @@ type HandshakeData struct {
 }
 
 type websocketConnection struct {
+	uuid        string
 	ws          *websocket.Conn
 	remoteAddr  string
 	messageCh   chan<- *Message
 	_hsData     HandshakeData
 	_cancelLoop context.CancelFunc
+}
+
+func (w *websocketConnection) UUID() string {
+	return w.uuid
 }
 
 func (w *websocketConnection) Execute(ctx context.Context, command string) ([]interface{}, error) {
@@ -56,8 +63,13 @@ func (w *websocketConnection) Close() error {
 	return w.ws.Close()
 }
 
-func NewWebsocketConnection(ws *websocket.Conn, remoteAddr string) (*websocketConnection, error) {
+func NewWebsocketConnection(ws *websocket.Conn, remoteAddr string, onConnectionLost func()) (*websocketConnection, error) {
 	c := new(websocketConnection)
+	uid, err := uuid.NewUUID()
+	if err != nil {
+		return nil, err
+	}
+	c.uuid = uid.String()
 	c.ws = ws
 	c.remoteAddr = remoteAddr
 
@@ -70,7 +82,7 @@ func NewWebsocketConnection(ws *websocket.Conn, remoteAddr string) (*websocketCo
 	ctx, cancel := context.WithCancel(context.Background())
 	c._cancelLoop = cancel
 
-	messageCh := startConnectionLoop(ctx, c.ws)
+	messageCh := startConnectionLoop(ctx, c.ws, onConnectionLost)
 	c.messageCh = messageCh
 
 	return c, nil
@@ -109,7 +121,7 @@ type ConnError struct {
 	Error   error
 }
 
-func startConnectionLoop(ctx context.Context, ws *websocket.Conn) chan<- *Message {
+func startConnectionLoop(ctx context.Context, ws *websocket.Conn, onConnectionLost func()) chan<- *Message {
 	messageCh := make(chan *Message, 8)
 
 	go func() {
@@ -140,7 +152,7 @@ func startConnectionLoop(ctx context.Context, ws *websocket.Conn) chan<- *Messag
 			if err != nil {
 				switch err.(type) {
 				case *websocket.CloseError:
-					//log.Println("CONNECTION CLOSED")
+					onConnectionLost()
 					return
 				default:
 					//log.Printf("err: %T %v\n", err, err)

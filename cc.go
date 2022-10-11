@@ -4,18 +4,24 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/m4schini/cc-go/computer"
 	"github.com/m4schini/cc-go/connection"
+	"log"
 	"net/http"
 )
 
 var upgrader = websocket.Upgrader{} // use default options
 
-var onNewTurtles = make([]func(id string, t computer.Turtle), 0)
+var onNewTurtles = make([]func(uuid string, t computer.Turtle), 0)
+var onLostTurtles = make([]func(uuid string, t computer.Turtle), 0)
 
-func onNewTurtle(t computer.Turtle) {
-	id, _ := t.ComputerId()
-
+func onNewTurtle(uuid string, t computer.Turtle) {
 	for _, f := range onNewTurtles {
-		go f(id, t)
+		go f(uuid, t)
+	}
+}
+
+func onLostTurtle(uuid string, t computer.Turtle) {
+	for _, f := range onLostTurtles {
+		go f(uuid, t)
 	}
 }
 
@@ -24,8 +30,12 @@ func Serve(addr string) error {
 	return http.ListenAndServe(addr, nil)
 }
 
-func OnTurtleConnected(f func(id string, t computer.Turtle)) {
+func OnTurtleConnected(f func(uuid string, t computer.Turtle)) {
 	onNewTurtles = append(onNewTurtles, f)
+}
+
+func OnTurtleDisconnected(f func(uuid string, t computer.Turtle)) {
+	onLostTurtles = append(onLostTurtles, f)
 }
 
 func connectTurtleHandler(w http.ResponseWriter, r *http.Request) {
@@ -36,12 +46,20 @@ func connectTurtleHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conn, err := connection.NewWebsocketConnection(c, r.RemoteAddr)
+	var turtle computer.Turtle
+
+	conn, err := connection.NewWebsocketConnection(c, r.RemoteAddr, func() {
+		onLostTurtle(turtle.UUID(), turtle)
+	})
 	if err != nil {
-		//log.Println(err)
+		log.Println(err)
 		return
 	}
 
-	t := computer.MakeTurtle(conn)
-	onNewTurtle(t)
+	turtle = computer.MakeTurtle(conn)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	onNewTurtle(turtle.UUID(), turtle)
 }

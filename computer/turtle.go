@@ -145,6 +145,10 @@ func (t *turtle) _doActionInt(command string) (int, error) {
 	}
 }
 
+func (t *turtle) UUID() string {
+	return t.conn.UUID()
+}
+
 func (t *turtle) Shutdown() error {
 	_, err := t.conn.Execute(context.TODO(), "os.shutdown()")
 	if err != nil {
