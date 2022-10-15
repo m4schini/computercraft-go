@@ -180,7 +180,21 @@ func (t *turtle) Version() (string, error) {
 }
 
 func (t *turtle) ComputerId() (string, error) {
-	return t.id, nil
+	res, err := t.conn.Execute(context.TODO(), "os.getComputerID()")
+	if err != nil {
+		return "", rpcErr(err)
+	}
+
+	if len(res) != 1 {
+		return "", errors.New("something went wrong")
+	}
+
+	label, ok := res[0].(float64)
+	if ok {
+		return fmt.Sprintf("%v", label), nil
+	}
+
+	return "", errors.New("not the id")
 }
 
 func (t *turtle) ComputerLabel() (string, error) {
