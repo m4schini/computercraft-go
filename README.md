@@ -4,6 +4,12 @@ go libary that hosts a weboscket server to interact with computers from the comp
 not every tweaked.cc api is implemented
 
 ## Getting Started
+1. Install runtime on computercraft turtle
+```
+pastebin get MV4wjTRA startup
+```
+
+2. Start computercraft-go endpoint
 ```go
 import (
   "github.com/m4schini/computercraft-go"
