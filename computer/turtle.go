@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/m4schini/cc-go/connection"
+	"github.com/m4schini/computercraft-go/connection"
 	"io"
 	"time"
 )

@@ -1,8 +1,8 @@
-package cc
+package computercraft
 
 import (
 	"fmt"
-	"github.com/m4schini/cc-go/computer"
+	"github.com/m4schini/computercraft-go/computer"
 	"testing"
 	"time"
 )

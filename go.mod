@@ -1,4 +1,4 @@
-module github.com/m4schini/cc-go
+module github.com/m4schini/computercraft-go
 
 go 1.19
 

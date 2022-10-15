@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/m4schini/cc-go/logger"
+	"github.com/m4schini/computercraft-go/logger"
 	"io"
 	"strings"
 )

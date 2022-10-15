@@ -1,10 +1,10 @@
-package cc
+package computercraft
 
 import (
 	"github.com/gorilla/websocket"
-	"github.com/m4schini/cc-go/computer"
-	"github.com/m4schini/cc-go/connection"
-	"github.com/m4schini/cc-go/logger"
+	"github.com/m4schini/computercraft-go/computer"
+	"github.com/m4schini/computercraft-go/connection"
+	"github.com/m4schini/computercraft-go/logger"
 	"go.uber.org/zap"
 	"net/http"
 )
