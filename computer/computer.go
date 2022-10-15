@@ -7,6 +7,7 @@ type Computer interface {
 	Reboot() error
 	Version() (string, error)
 
+	ID() string
 	UUID() string
 	ComputerId() (string, error)
 	ComputerLabel() (string, error)
