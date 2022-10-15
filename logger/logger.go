@@ -40,3 +40,7 @@ func Sub(names ...string) *zap.Logger {
 
 	return subLogger.Desugar()
 }
+
+func UseLogger(newLogger *zap.Logger) {
+	logger = newLogger
+}

@@ -5,6 +5,7 @@ import (
 	"github.com/m4schini/cc-go/computer"
 	"github.com/m4schini/cc-go/connection"
 	"github.com/m4schini/cc-go/logger"
+	"go.uber.org/zap"
 	"net/http"
 )
 
@@ -44,6 +45,10 @@ func OnTurtleConnected(f func(remoteAddr, uuid string, t computer.Turtle)) {
 
 func OnTurtleDisconnected(f func(remoteAddr, uuid string, t computer.Turtle)) {
 	onLostTurtles = append(onLostTurtles, f)
+}
+
+func UseLogger(newLogger *zap.Logger) {
+	logger.UseLogger(newLogger)
 }
 
 func connectTurtleHandler(w http.ResponseWriter, r *http.Request) {
