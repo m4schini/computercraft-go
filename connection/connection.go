@@ -2,6 +2,7 @@ package connection
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
@@ -131,6 +132,7 @@ func startConnectionLoop(ctx context.Context, ws *websocket.Conn, onConnectionLo
 		for {
 			select {
 			case <-ctx.Done():
+				onConnectionLost()
 				return
 			default:
 
@@ -154,19 +156,22 @@ func startConnectionLoop(ctx context.Context, ws *websocket.Conn, onConnectionLo
 			err = ws.ReadJSON(&responseJson)
 			if err != nil {
 				switch err.(type) {
+				case *json.UnmarshalTypeError:
+					message.OnResponse <- make([]interface{}, 0)
+					continue
+				case *json.MarshalerError:
+					message.OnResponse <- make([]interface{}, 0)
+					continue
 				case *websocket.CloseError:
 					onConnectionLost()
 					return
 				default:
+					onConnectionLost()
+					return
 					//log.Printf("err: %T %v\n", err, err)
 					//log.Printf("empty respond to \"%v\"\n", message.Instruction)
-					message.OnResponse <- make([]interface{}, 0)
-					continue
+
 				}
-				//errorCh <- &ConnError{
-				//	Message: message,
-				//	Error:   err,
-				//}
 
 			}
 

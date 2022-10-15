@@ -10,18 +10,18 @@ import (
 
 var upgrader = websocket.Upgrader{} // use default options
 
-var onNewTurtles = make([]func(uuid string, t computer.Turtle), 0)
-var onLostTurtles = make([]func(uuid string, t computer.Turtle), 0)
+var onNewTurtles = make([]func(remoteAddr, uuid string, turtle computer.Turtle), 0)
+var onLostTurtles = make([]func(remoteAddr, uuid string, turtle computer.Turtle), 0)
 
-func onNewTurtle(uuid string, t computer.Turtle) {
+func onNewTurtle(remoteAddr, uuid string, t computer.Turtle) {
 	for _, f := range onNewTurtles {
-		go f(uuid, t)
+		go f(remoteAddr, uuid, t)
 	}
 }
 
-func onLostTurtle(uuid string, t computer.Turtle) {
+func onLostTurtle(remoteAddr, uuid string, t computer.Turtle) {
 	for _, f := range onLostTurtles {
-		go f(uuid, t)
+		go f(remoteAddr, uuid, t)
 	}
 }
 
@@ -30,11 +30,11 @@ func Serve(addr string) error {
 	return http.ListenAndServe(addr, nil)
 }
 
-func OnTurtleConnected(f func(uuid string, t computer.Turtle)) {
+func OnTurtleConnected(f func(remoteAddr, uuid string, t computer.Turtle)) {
 	onNewTurtles = append(onNewTurtles, f)
 }
 
-func OnTurtleDisconnected(f func(uuid string, t computer.Turtle)) {
+func OnTurtleDisconnected(f func(remoteAddr, uuid string, t computer.Turtle)) {
 	onLostTurtles = append(onLostTurtles, f)
 }
 
@@ -49,7 +49,7 @@ func connectTurtleHandler(w http.ResponseWriter, r *http.Request) {
 	var turtle computer.Turtle
 
 	conn, err := connection.NewWebsocketConnection(c, r.RemoteAddr, func() {
-		onLostTurtle(turtle.UUID(), turtle)
+		onLostTurtle(r.RemoteAddr, turtle.UUID(), turtle)
 	})
 	if err != nil {
 		log.Println(err)
@@ -61,5 +61,5 @@ func connectTurtleHandler(w http.ResponseWriter, r *http.Request) {
 		log.Println(err)
 		return
 	}
-	onNewTurtle(turtle.UUID(), turtle)
+	onNewTurtle(r.RemoteAddr, turtle.UUID(), turtle)
 }

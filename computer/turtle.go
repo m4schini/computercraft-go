@@ -180,6 +180,7 @@ func (t *turtle) Version() (string, error) {
 }
 
 func (t *turtle) ComputerId() (string, error) {
+	//TODO fix handshake id to use IP+ID again
 	res, err := t.conn.Execute(context.TODO(), "os.getComputerID()")
 	if err != nil {
 		return "", rpcErr(err)
