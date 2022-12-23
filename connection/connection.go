@@ -4,45 +4,68 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/m4schini/computercraft-go/logger"
+	"github.com/m4schini/logger"
+	"go.uber.org/zap"
 	"io"
 	"strings"
 )
 
-var log = logger.Sub("connection").Sugar()
+var log = logger.Named("connection").Sugar()
 
 type Connection interface {
-	UUID() string
 	Execute(ctx context.Context, command string) ([]interface{}, error)
-	Handshake() HandshakeData
+	Context() context.Context
 	io.Closer
 }
 
 type HandshakeData struct {
 	Id    string
-	Label string
+	Host string
 }
 
 type websocketConnection struct {
-	uuid        string
+	log *zap.SugaredLogger
 	ws          *websocket.Conn
-	remoteAddr  string
 	messageCh   chan<- *Message
-	_hsData     HandshakeData
-	_cancelLoop context.CancelFunc
+	ctx context.Context
+	cancelFunc context.CancelFunc
+	_hsData    HandshakeData
 }
 
-func (w *websocketConnection) UUID() string {
-	return w.uuid
+func NewWebsocketConnection(ws *websocket.Conn, remoteAddr string) (*websocketConnection, error) {
+	c := new(websocketConnection)
+	c.log = log.With("remoteAddr", remoteAddr)
+	c.ws = ws
+
+	hs, err := handleHandshake(c.log, c, remoteAddr)
+	if err != nil {
+		return nil, err
+	}
+	c._hsData = hs
+
+	ctx, cancel := context.WithCancel(context.Background())
+	loopCtx, loopCancel := context.WithCancel(ctx)
+	messageCh := startConnectionLoop(loopCtx, hs, c.ws, func() {
+		cancel()
+	})
+	c.ctx = ctx
+	c.cancelFunc = func() {
+		loopCancel()
+		cancel()
+	}
+	c.messageCh = messageCh
+
+	log.Debug("created websocket connection")
+	return c, nil
+}
+
+func (w *websocketConnection) Context() context.Context {
+	return w.ctx
 }
 
 func (w *websocketConnection) Execute(ctx context.Context, command string) ([]interface{}, error) {
-	log.Infow("command execution started",
-		"command", command,
-		"remoteAddr", w.remoteAddr,
-		"uuid", w.uuid)
+	log.Debugw("command execution started","command", command)
 	waitCh := make(chan []interface{})
 
 	var response []interface{}
@@ -55,15 +78,10 @@ func (w *websocketConnection) Execute(ctx context.Context, command string) ([]in
 	select {
 	case <-ctx.Done():
 		err := ctx.Err()
-		log.Errorw("command execution failed",
-			"remoteAddr", w.remoteAddr,
-			"uuid", w.uuid,
-			"error", err)
+		log.Errorw("command execution failed","error", err)
 		return nil, err
 	case response = <-waitCh:
-		log.Infow("command execution succeeded",
-			"remoteAddr", w.remoteAddr,
-			"uuid", w.uuid)
+		log.Debugw("command execution succeeded")
 		return response, nil
 	}
 }
@@ -74,57 +92,19 @@ func (w *websocketConnection) Handshake() HandshakeData {
 
 func (w *websocketConnection) Close() error {
 	log.Debugw("trying to close websocket connection")
-	if w._cancelLoop != nil {
-		w._cancelLoop()
+	if w.cancelFunc != nil {
+		w.cancelFunc()
 	}
 	return w.ws.Close()
 }
 
-func NewWebsocketConnection(ws *websocket.Conn, remoteAddr string, onConnectionLost func()) (*websocketConnection, error) {
-	c := new(websocketConnection)
-	uid, err := uuid.NewUUID()
-	if err != nil {
-		return nil, err
-	}
-	c.uuid = uid.String()
-	c.ws = ws
-	c.remoteAddr = remoteAddr
-
-	hs, err := handleHandshake(c)
-	if err != nil {
-		return nil, err
-	}
-	c._hsData = hs
-
-	ctx, cancel := context.WithCancel(context.Background())
-	c._cancelLoop = cancel
-
-	messageCh := startConnectionLoop(ctx, hs, c.ws, onConnectionLost)
-	c.messageCh = messageCh
-
-	log.Debugw("created websocket connection",
-		"remoteAddr", remoteAddr,
-		"uuid", remoteAddr)
-	return c, nil
-}
-
-func handleHandshake(wsc *websocketConnection) (HandshakeData, error) {
-	log.Debugw("handshake started",
-		"remoteAddr", wsc.remoteAddr,
-		"uuid", wsc.uuid)
+func handleHandshake(log *zap.SugaredLogger, wsc *websocketConnection, remoteAddr string) (HandshakeData, error) {
 	var handshakeMessage = make(map[string]interface{})
 
 	err := wsc.ws.ReadJSON(&handshakeMessage)
 	if err != nil {
-		log.Debugw("handshake failed",
-			"remoteAddr", wsc.remoteAddr,
-			"uuid", wsc.uuid,
-			"error", err)
 		return HandshakeData{}, err
 	}
-	log.Debugw("received websocket handshake",
-		"remoteAddr", wsc.remoteAddr,
-		"message", handshakeMessage)
 
 	var idAsInt int64
 	id, ok := handshakeMessage["id"]
@@ -133,24 +113,16 @@ func handleHandshake(wsc *websocketConnection) (HandshakeData, error) {
 		if ok {
 			idAsInt = int64(idAsFloat)
 		} else {
-			log.Warnw("handshake message id is not a number",
-				"remoteAddr", wsc.remoteAddr)
+			log.Warnw("handshake message id is not a number")
 		}
 	} else {
-		log.Warnw("handshake message didn't contain id",
-			"remoteAddr", wsc.remoteAddr)
+		log.Warnw("handshake message didn't contain id")
 	}
 
-	log.Debugw("handshake succeeded",
-		"remoteAddr", wsc.remoteAddr,
-		"turtleId", idAsInt,
-		"uuid", wsc.uuid)
+	log.Debugw("handshake succeeded", "turtleId", idAsInt)
 	return HandshakeData{
-		Id: fmt.Sprintf("%v#%v",
-			strings.Split(wsc.remoteAddr, ":")[0],
-			idAsInt,
-		),
-		//Label: handshakeMessage["label"].(string), //TODO
+		Id: fmt.Sprintf("%v", idAsInt),
+		Host: strings.Split(remoteAddr, ":")[0],
 	}, nil
 }
 
@@ -161,7 +133,11 @@ type Message struct {
 
 type ConnError struct {
 	Message *Message
-	Error   error
+	err   error
+}
+
+func (c *ConnError) Error() string {
+	return c.err.Error()
 }
 
 func startConnectionLoop(ctx context.Context, hs HandshakeData, ws *websocket.Conn, onConnectionLost func()) chan<- *Message {
@@ -239,3 +215,4 @@ func startConnectionLoop(ctx context.Context, hs HandshakeData, ws *websocket.Co
 
 	return messageCh
 }
+

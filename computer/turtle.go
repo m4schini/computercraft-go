@@ -1,9 +1,9 @@
 package computer
 
 import (
-	"context"
 	"errors"
 	"fmt"
+	"github.com/m4schini/computercraft-go/computer/commands"
 	"github.com/m4schini/computercraft-go/connection"
 	"io"
 	"time"
@@ -86,208 +86,94 @@ type Turtle interface {
 	GPS
 }
 
-func rpcErr(err error) error {
-	return fmt.Errorf("RPC: %v", err)
-}
-
 type turtle struct {
-	id   string
-	conn connection.Connection
+	client connection.Client
 }
 
-func NewTurtle(connection connection.Connection) *turtle {
+func NewTurtle(client connection.Client) *turtle {
 	t := new(turtle)
-	t.id = connection.Handshake().Id
-	t.conn = connection
+	t.client = client
 	return t
 }
 
 func (t *turtle) Close() error {
 	t.Shutdown()
-	return t.conn.Close()
-}
-
-func (t *turtle) _doActionBool(command string) (bool, error) {
-	res, err := t.conn.Execute(context.TODO(), command)
-	if err != nil {
-		return false, rpcErr(err)
-	}
-
-	if res != nil && len(res) > 1 {
-		err, ok := res[1].(string)
-		if ok {
-			return false, fmt.Errorf("RPC: %v", err)
-		}
-	}
-
-	detect, ok := res[0].(bool)
-	return ok && detect, nil
-}
-
-func (t *turtle) _doActionInt(command string) (int, error) {
-	res, err := t.conn.Execute(context.TODO(), command)
-	if err != nil {
-		return -1, rpcErr(err)
-	}
-
-	if res != nil && len(res) > 1 {
-		err, ok := res[1].(string)
-		if ok {
-			return -1, fmt.Errorf("RPC: %v", err)
-		}
-	}
-
-	num, ok := res[0].(float64)
-	if ok {
-		return int(num), nil
-	} else {
-		return -1, errors.New("unexpected datatype")
-	}
-}
-
-func (t *turtle) UUID() string {
-	return t.conn.UUID()
+	return t.client.Connection().Close()
 }
 
 func (t *turtle) Shutdown() error {
-	_, err := t.conn.Execute(context.TODO(), "os.shutdown()")
-	if err != nil {
-		return rpcErr(err)
-	}
-	return nil
+	conn := t.client.Connection()
+	return commands.Shutdown(conn.Context(), conn)
 }
 
 func (t *turtle) Reboot() error {
-	_, err := t.conn.Execute(context.TODO(), "os.reboot()")
-	if err != nil {
-		return rpcErr(err)
-	}
-	return nil
+	conn := t.client.Connection()
+	return commands.Reboot(conn.Context(), conn)
 }
 
 func (t *turtle) Version() (string, error) {
-	res, err := t.conn.Execute(context.TODO(), "os.version()")
-	if err != nil {
-		return "", rpcErr(err)
-	}
-
-	version, ok := res[0].(string)
-	if ok {
-		return version, nil
-	} else {
-		return "", errors.New("unexpected datatype")
-	}
-}
-
-func (t *turtle) ID() string {
-	return t.id
+	conn := t.client.Connection()
+	return commands.Version(conn.Context(), conn)
 }
 
 func (t *turtle) ComputerId() (string, error) {
-	res, err := t.conn.Execute(context.TODO(), "os.getComputerID()")
-	if err != nil {
-		return "", rpcErr(err)
-	}
-
-	if len(res) != 1 {
-		return "", errors.New("something went wrong")
-	}
-
-	label, ok := res[0].(float64)
-	if ok {
-		return fmt.Sprintf("%v", label), nil
-	}
-
-	return "", errors.New("not the id")
+	conn := t.client.Connection()
+	return commands.ComputerId(conn.Context(), conn)
 }
 
 func (t *turtle) ComputerLabel() (string, error) {
-	res, err := t.conn.Execute(context.TODO(), "os.getComputerLabel()")
-	if err != nil {
-		return "", rpcErr(err)
-	}
-
-	if len(res) != 1 {
-		return "", errors.New("something went wrong")
-	}
-
-	label, ok := res[0].(string)
-	if ok {
-		return label, nil
-	}
-
-	return "", errors.New("not a label")
+	conn := t.client.Connection()
+	return commands.ComputerLabel(conn.Context(), conn)
 }
 
 func (t *turtle) SetComputerLabel(label string) error {
-	var err error
-	if label == "" {
-		_, err = t.conn.Execute(context.TODO(), "os.setComputerLabel()")
-	} else {
-		_, err = t.conn.Execute(context.TODO(), fmt.Sprintf("os.setComputerLabel(\"%v\")", label))
-	}
-
-	if err != nil {
-		return rpcErr(err)
-	} else {
-		return nil
-	}
+	conn := t.client.Connection()
+	return commands.SetComputerLabel(conn.Context(), conn, label)
 }
 
 func (t *turtle) Uptime() (time.Duration, error) {
-	res, err := t.conn.Execute(context.TODO(), "os.clock()")
-	if err != nil {
-		return 0, err
-	}
-
-	uptime, ok := res[0].(float64)
-	if !ok {
-		return 0, err
-	}
-
-	return time.Duration(uptime) * time.Second, nil
+	conn := t.client.Connection()
+	return commands.Uptime(conn.Context(), conn)
 }
 
 func (t *turtle) Time() (float64, error) {
-	res, err := t.conn.Execute(context.TODO(), "os.time()")
-	if err != nil {
-		return 0, err
-	}
-
-	tme, ok := res[0].(float64)
-	if !ok {
-		return 0, err
-	}
-
-	return tme, nil
+	conn := t.client.Connection()
+	return commands.Time(conn.Context(), conn)
 }
 
 func (t *turtle) Forward() (bool, error) {
-	return t._doActionBool("turtle.forward()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn, "turtle.forward()")
 }
 
 func (t *turtle) Back() (bool, error) {
-	return t._doActionBool("turtle.back()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn, "turtle.back()")
 }
 
 func (t *turtle) Up() (bool, error) {
-	return t._doActionBool("turtle.up()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.up()")
 }
 
 func (t *turtle) Down() (bool, error) {
-	return t._doActionBool("turtle.down()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.down()")
 }
 
 func (t *turtle) TurnLeft() (bool, error) {
-	return t._doActionBool("turtle.turnLeft()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.turnLeft()")
 }
 
 func (t *turtle) TurnRight() (bool, error) {
-	return t._doActionBool("turtle.turnRight()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.turnRight()")
 }
 
 func (t *turtle) _detect(command string) bool {
-	res, err := t.conn.Execute(context.TODO(), command)
+	conn := t.client.Connection()
+	res, err := conn.Execute(conn.Context(), command)
 	if err != nil {
 		return false
 	}
@@ -311,58 +197,71 @@ func (t *turtle) DetectDown() bool {
 }
 
 func (t *turtle) Dig() (bool, error) {
-	return t._doActionBool("turtle.dig()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.dig()")
 }
 
 func (t *turtle) DigDown() (bool, error) {
-	return t._doActionBool("turtle.digDown()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.digDown()")
 }
 
 func (t *turtle) DigUp() (bool, error) {
-	return t._doActionBool("turtle.digUp()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.digUp()")
 }
 
 func (t *turtle) Place() (bool, error) {
-	return t._doActionBool("turtle.place()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.place()")
 }
 
 func (t *turtle) PlaceUp() (bool, error) {
-	return t._doActionBool("turtle.placeUp()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.placeUp()")
 
 }
 
 func (t *turtle) PlaceDown() (bool, error) {
-	return t._doActionBool("turtle.placeDown()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.placeDown()")
 
 }
 
 func (t *turtle) Drop(count int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.drop(%v)", count))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.drop(%v)", count))
 
 }
 
 func (t *turtle) DropUp(count int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.dropUp(%v)", count))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.dropUp(%v)", count))
 }
 
 func (t *turtle) DropDown(count int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.dropDown(%v)", count))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.dropDown(%v)", count))
 }
 
 func (t *turtle) Select(slot int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.select(%v)", slot))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.select(%v)", slot))
 }
 
 func (t *turtle) SelectedSlot() (int, error) {
-	return t._doActionInt("turtle.getSelectedSlot()")
+	conn := t.client.Connection()
+	return connection.DoActionInt(conn.Context(), conn,"turtle.getSelectedSlot()")
 }
 
 func (t *turtle) ItemCount(slot int) (int, error) {
-	return t._doActionInt(fmt.Sprintf("turtle.getItemCount(%v)", slot))
+	conn := t.client.Connection()
+	return connection.DoActionInt(conn.Context(), conn,fmt.Sprintf("turtle.getItemCount(%v)", slot))
 }
 
 func (t *turtle) ItemSpace(slot int) (int, error) {
-	return t._doActionInt(fmt.Sprintf("turtle.getItemSpace(%v)", slot))
+	conn := t.client.Connection()
+	return connection.DoActionInt(conn.Context(), conn, fmt.Sprintf("turtle.getItemSpace(%v)", slot))
 }
 
 func (t *turtle) ItemDetail(slot int, detailed bool) (map[string]interface{}, error) {
@@ -371,79 +270,94 @@ func (t *turtle) ItemDetail(slot int, detailed bool) (map[string]interface{}, er
 }
 
 func (t *turtle) CompareTo(slot int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.compareTo(%v)", slot))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.compareTo(%v)", slot))
 }
 
 func (t *turtle) TransferTo(slot, count int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.transferTo(%v,%v)", slot, count))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.transferTo(%v,%v)", slot, count))
 }
 
 func (t *turtle) Compare() (bool, error) {
-	return t._doActionBool("turtle.compare()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.compare()")
 }
 
 func (t *turtle) CompareUp() (bool, error) {
-	return t._doActionBool("turtle.compareUp()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.compareUp()")
 
 }
 
 func (t *turtle) CompareDown() (bool, error) {
-	return t._doActionBool("turtle.compareDown()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.compareDown()")
 
 }
 
 func (t *turtle) Attack() (bool, error) {
-	return t._doActionBool("turtle.attack()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.attack()")
 
 }
 
 func (t *turtle) AttackUp() (bool, error) {
-	return t._doActionBool("turtle.attackUp()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.attackUp()")
 
 }
 
 func (t *turtle) AttackDown() (bool, error) {
-	return t._doActionBool("turtle.attackDown()")
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,"turtle.attackDown()")
 
 }
 
 func (t *turtle) Suck(count int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.suck(%v)", count))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.suck(%v)", count))
 }
 
 func (t *turtle) SuckUp(count int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.suckUp(%v)", count))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.suckUp(%v)", count))
 }
 
 func (t *turtle) SuckDown(count int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.suckDown(%v)", count))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.suckDown(%v)", count))
 }
 
 func (t *turtle) FuelLevel() (int, error) {
-	return t._doActionInt("turtle.getFuelLevel()")
+	conn := t.client.Connection()
+	return connection.DoActionInt(conn.Context(), conn,"turtle.getFuelLevel()")
 }
 
 func (t *turtle) Refuel(count int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.refuel(%v)", count))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.refuel(%v)", count))
 }
 
 func (t *turtle) FuelLimit() (int, error) {
-	return t._doActionInt("turtle.getFuelLimit()")
+	conn := t.client.Connection()
+	return connection.DoActionInt(conn.Context(), conn,"turtle.getFuelLimit()")
 }
 
 func (t *turtle) _doInspect(command string) (bool, Block, error) {
-	res, err := t.conn.Execute(context.TODO(), command)
+	conn := t.client.Connection()
+	res, err := conn.Execute(conn.Context(), command)
 	if err != nil {
-		return false, nil, rpcErr(err)
+		return false, nil, connection.RpcError(err)
 	}
 
 	if len(res) < 2 {
-		return false, nil, rpcErr(errors.New("not enough parameter"))
+		return false, nil, connection.RpcError(errors.New("not enough parameter"))
 	}
 
 	errMsg, isError := res[1].(string)
 	if isError {
-		return false, nil, rpcErr(errors.New(errMsg))
+		return false, nil, connection.RpcError(errors.New(errMsg))
 	}
 
 	detectedBlock, ok := res[0].(bool)
@@ -453,7 +367,7 @@ func (t *turtle) _doInspect(command string) (bool, Block, error) {
 
 	data, ok := res[1].(map[string]interface{})
 	if !ok {
-		return false, nil, rpcErr(errors.New("unexpected datatype"))
+		return false, nil, connection.UnexpectedDatatypeErr
 	}
 
 	return detectedBlock, data, nil
@@ -474,17 +388,20 @@ func (t *turtle) InspectDown() (bool, Block, error) {
 }
 
 func (t *turtle) Craft(limit int) (bool, error) {
-	return t._doActionBool(fmt.Sprintf("turtle.craft(%v)", limit))
+	conn := t.client.Connection()
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.craft(%v)", limit))
 }
 
 func (t *turtle) _doLocate(timeout time.Duration, debug bool) (int, int, int, error) {
-	res, err := t.conn.Execute(
-		context.TODO(),
+	conn := t.client.Connection()
+	res, err := conn.Execute(
+		conn.Context(),
 		fmt.Sprintf("gps.locate(%v, %v)", int(timeout.Seconds()), debug),
 	)
 	if err != nil {
-		return 0, 0, 0, rpcErr(err)
+		return 0, 0, 0, connection.RpcError(err)
 	}
+
 
 	if len(res) == 0 {
 		return 0, 0, 0, errors.New("position could not be established")
@@ -496,17 +413,17 @@ func (t *turtle) _doLocate(timeout time.Duration, debug bool) (int, int, int, er
 
 	x, ok := res[0].(float64)
 	if !ok {
-		return 0, 0, 0, errors.New("unexpected datatype")
+		return 0, 0, 0, connection.UnexpectedDatatypeErr
 	}
 
 	y, ok := res[1].(float64)
 	if !ok {
-		return 0, 0, 0, errors.New("unexpected datatype")
+		return 0, 0, 0, connection.UnexpectedDatatypeErr
 	}
 
 	z, ok := res[2].(float64)
 	if !ok {
-		return 0, 0, 0, errors.New("unexpected datatype")
+		return 0, 0, 0, connection.UnexpectedDatatypeErr
 	}
 
 	return int(x), int(y), int(z), nil
@@ -521,27 +438,32 @@ func (t *turtle) LocateWithTimeout(timeout time.Duration) (int, int, int, error)
 }
 
 func (t *turtle) Define(name string, option ...SettingsOption) error {
-	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.define(\"%s\")", name))
+	conn := t.client.Connection()
+	_, err := conn.Execute(conn.Context(), fmt.Sprintf("settings.define(\"%s\")", name))
 	return err
 }
 
 func (t *turtle) Undefine(name string) error {
-	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.undefine(\"%s\")", name))
+	conn := t.client.Connection()
+	_, err := conn.Execute(conn.Context(), fmt.Sprintf("settings.undefine(\"%s\")", name))
 	return err
 }
 
 func (t *turtle) Set(name, value string) error {
-	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.set(\"%s\", \"%s\")", name, value))
+	conn := t.client.Connection()
+	_, err := conn.Execute(conn.Context(), fmt.Sprintf("settings.set(\"%s\", \"%s\")", name, value))
 	return err
 }
 
 func (t *turtle) Unset(name string) error {
-	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.unset(\"%s\")", name))
+	conn := t.client.Connection()
+	_, err := conn.Execute(conn.Context(), fmt.Sprintf("settings.unset(\"%s\")", name))
 	return err
 }
 
 func (t *turtle) Get(name string) (string, error) {
-	res, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.set(\"%s\")", name))
+	conn := t.client.Connection()
+	res, err := conn.Execute(conn.Context(), fmt.Sprintf("settings.set(\"%s\")", name))
 	if err != nil {
 		return "", err
 	}
@@ -553,7 +475,8 @@ func (t *turtle) Get(name string) (string, error) {
 }
 
 func (t *turtle) Clear() error {
-	_, err := t.conn.Execute(context.TODO(), fmt.Sprintf("settings.clear()"))
+	conn := t.client.Connection()
+	_, err := conn.Execute(conn.Context(), fmt.Sprintf("settings.clear()"))
 	return err
 }
 
