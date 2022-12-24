@@ -2,14 +2,18 @@ package adapter
 
 import (
 	"github.com/gorilla/websocket"
+	"github.com/m4schini/logger"
 	"io"
 )
+
+var log = logger.Named("adapter")
 
 type reader struct {
 	conn *websocket.Conn
 }
 
 func (r *reader) Read(p []byte) (int, error) {
+	log.Debug("READING WEBSOCKET MESSAGE")
 	_, reader, err := r.conn.NextReader()
 	if err != nil {
 		return 0, err
@@ -17,9 +21,11 @@ func (r *reader) Read(p []byte) (int, error) {
 
 	var size int
 	for {
+		log.Debug("WAITING FOR NEXT PART")
 		var buffer []byte
 		n, err := reader.Read(buffer)
 		if err == io.EOF {
+			log.Debug("RECEIVED EOF")
 			return size, nil
 		}
 		if err != nil {
@@ -46,15 +52,18 @@ type writer struct {
 }
 
 func (w *writer) Write(p []byte) (n int, err error) {
+	log.Debug("WRITING WEBSOCKET MESSAGE")
 	out, err := w.conn.NextWriter(websocket.TextMessage)
 	if err != nil {
 		return 0, err
 	}
 
+	log.Debug("WRITING BYTES")
 	n, err = out.Write(p)
 	if err != nil {
 		return n, err
 	}
+	log.Debug("CLOSING MESSAGE")
 	return n, out.Close()
 }
 
