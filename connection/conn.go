@@ -49,6 +49,9 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 			e = err
 			res <- []interface{}{}
 		}
+
+		e = nil
+		res <- response
 	}()
 
 	select {
