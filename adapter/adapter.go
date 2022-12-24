@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/m4schini/logger"
 	"io"
@@ -13,28 +14,14 @@ type reader struct {
 }
 
 func (r *reader) Read(p []byte) (int, error) {
-	log.Debug("READING WEBSOCKET MESSAGE")
-	_, reader, err := r.conn.NextReader()
+	_, res, err := r.conn.ReadMessage()
 	if err != nil {
-		return 0, err
+		return len(res), err
 	}
+	log.Debug(fmt.Sprintf("read bytes (%v) from websocket", len(p)))
 
-	var size int
-	for {
-		log.Debug("WAITING FOR NEXT PART")
-		var buffer []byte
-		n, err := reader.Read(buffer)
-		if err == io.EOF {
-			log.Debug("RECEIVED EOF")
-			return size, nil
-		}
-		if err != nil {
-			return size, err
-		}
-
-		size = size + n
-		p = append(p, buffer...)
-	}
+	p = append(p, res...)
+	return len(res), nil
 }
 
 func (r *reader) Close() error {
@@ -52,19 +39,9 @@ type writer struct {
 }
 
 func (w *writer) Write(p []byte) (n int, err error) {
-	log.Debug("WRITING WEBSOCKET MESSAGE")
-	out, err := w.conn.NextWriter(websocket.TextMessage)
-	if err != nil {
-		return 0, err
-	}
-
-	log.Debug("WRITING BYTES")
-	n, err = out.Write(p)
-	if err != nil {
-		return n, err
-	}
-	log.Debug("CLOSING MESSAGE")
-	return n, out.Close()
+	l := len(p)
+	log.Debug(fmt.Sprintf("writing bytes (%v) to websocket", l))
+	return l, w.conn.WriteMessage(websocket.TextMessage, p)
 }
 
 func (w *writer) Close() error {
