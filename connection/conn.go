@@ -4,12 +4,40 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/m4schini/logger"
+	"go.uber.org/zap"
 	"io"
 )
+
+type DeviceType string
+
+const (
+	DeviceComputer       = "c"
+	DevicePocketComputer = "p"
+	DeviceTurtle         = "t"
+)
+
+var log = logger.Named("connection").Sugar()
+
+type Connection interface {
+	Execute(ctx context.Context, command string) ([]interface{}, error)
+	Context() context.Context
+	Device() DeviceType
+	RemoteHost() string
+	Id() string
+	io.Closer
+}
+
+type HandshakeData struct {
+	Id   string
+	Host string
+	Type DeviceType
+}
 
 type conn struct {
 	In        <-chan []byte
 	Out       chan<- []byte
+	log       *zap.SugaredLogger
 	closer    io.Closer
 	ctx       context.Context
 	handshake HandshakeData
@@ -23,10 +51,12 @@ func New(ctx context.Context, in <-chan []byte, out chan<- []byte, closer io.Clo
 		ctx:    ctx,
 	}
 	c.handshake = c.doHandshake()
+	c.log = log.With("host", c.handshake.Host, "id", c.handshake.Id, "type", c.handshake.Type)
 	return c
 }
 
 func (c *conn) send(f string) error {
+	c.log.Debugf("sending instruction: \"%v\"", f)
 	bytes, err := json.Marshal(map[string]any{
 		"func": fmt.Sprintf("return {%s}", f),
 	})
@@ -35,10 +65,12 @@ func (c *conn) send(f string) error {
 	}
 
 	c.Out <- bytes
+	c.log.Debugf("send instruction \"%v\"", f)
 	return err
 }
 
 func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
+	c.log.Debug("waiting for incoming message")
 	res := make(chan []interface{})
 	var e error
 	go func() {
@@ -56,9 +88,12 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 
 	select {
 	case r := <-res:
+		c.log.Debugf("received message: \"%v\"", r)
 		return r, e
 	case <-ctx.Done():
-		return []interface{}{}, ctx.Err()
+		err := ctx.Err()
+		c.log.Debugw("receiving message failed", "err", err)
+		return []interface{}{}, err
 	}
 }
 
@@ -95,13 +130,16 @@ func (c *conn) doHandshake() HandshakeData {
 	return data
 }
 
-func (c *conn) Execute(ctx context.Context, command string) ([]interface{}, error) {
-	err := c.send(command)
+func (c *conn) Execute(ctx context.Context, command string) (response []interface{}, err error) {
+	log.Infof("sending: %v", command)
+	defer log.Infof("received: %v (err=%v)", response, err)
+	err = c.send(command)
 	if err != nil {
 		return nil, err
 	}
 
-	return c.receive(ctx)
+	response, err = c.receive(ctx)
+	return response, err
 }
 
 func (c *conn) Context() context.Context {
@@ -125,6 +163,7 @@ func (c *conn) Id() string {
 }
 
 func (c *conn) Close() error {
+	c.log.Warn("closing connection")
 	if c.closer != nil {
 		return c.closer.Close()
 	}
