@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/m4schini/logger"
@@ -11,17 +12,23 @@ var log = logger.Named("adapter")
 
 type reader struct {
 	conn *websocket.Conn
+	buf  bytes.Buffer
 }
 
 func (r *reader) Read(p []byte) (int, error) {
-	_, res, err := r.conn.ReadMessage()
-	if err != nil {
-		return len(res), err
+	n, err := r.buf.Read(p)
+	if err == io.EOF {
+		_, res, err := r.conn.ReadMessage()
+		if err == io.EOF {
+			return n, err
+		}
+		if err != nil {
+			return n, err
+		}
+		r.buf.Write(res)
+		return n, nil
 	}
-	log.Debug(fmt.Sprintf("read bytes (%v) from websocket", len(p)))
-
-	p = append(p, res...)
-	return len(res), nil
+	return n, err
 }
 
 func (r *reader) Close() error {
