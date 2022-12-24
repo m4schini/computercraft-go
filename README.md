@@ -28,6 +28,6 @@ func main() {
 	})
   
   // serve entry point
-  computercraft.Serve(0.0.0.0:8080)
+  computercraft.Serve("0.0.0.0:8080")
 }
 ```
