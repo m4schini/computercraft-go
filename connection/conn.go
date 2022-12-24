@@ -66,8 +66,7 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 
 func (c *conn) doHandshake() HandshakeData {
 	var data = HandshakeData{}
-	var buffer []byte
-	_, err := c.In.Read(buffer)
+	buffer, err := io.ReadAll(c.In)
 	if err != nil {
 		return data
 	}
