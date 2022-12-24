@@ -1,8 +1,10 @@
 package computercraft
 
 import (
+	"context"
 	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/m4schini/computercraft-go/adapter"
 	"github.com/m4schini/computercraft-go/computer"
 	"github.com/m4schini/computercraft-go/connection"
 	"sync"
@@ -13,10 +15,12 @@ var knownComputerMu sync.Mutex
 
 // New creates a device from a websocket. If a new device was created, the bool return is true
 func New(ws *websocket.Conn, remoteAddr string) (any, bool, error) {
-	conn, err := connection.NewWebsocketConnection(ws, remoteAddr)
-	if err != nil {
-		return nil, false, err
-	}
+	conn := connection.New(
+		context.Background(),
+		adapter.ReaderFromWebsocket(ws),
+		adapter.WriterFromWebsocket(ws),
+		ws,
+	)
 
 	var client connection.Client
 	var ok bool

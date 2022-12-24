@@ -39,6 +39,7 @@ type HandshakeData struct {
 type websocketConnection struct {
 	log        *zap.SugaredLogger
 	ws         *websocket.Conn
+	conn       io.Reader
 	messageCh  chan<- *Message
 	ctx        context.Context
 	cancelFunc context.CancelFunc
@@ -98,10 +99,8 @@ func (w *websocketConnection) Execute(ctx context.Context, command string) ([]in
 	select {
 	case <-ctx.Done():
 		err := ctx.Err()
-		log.Errorw("command execution failed", "error", err)
 		return nil, err
 	case response = <-waitCh:
-		log.Debugw("command execution succeeded")
 		return response, nil
 	}
 }

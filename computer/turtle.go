@@ -101,8 +101,10 @@ func (t *turtle) Online() bool {
 }
 
 func (t *turtle) Close() error {
-	t.Shutdown()
-	return t.client.Connection().Close()
+	return errors.Join(
+		t.Shutdown(),
+		t.client.Connection().Close(),
+	)
 }
 
 func (t *turtle) Shutdown() error {
