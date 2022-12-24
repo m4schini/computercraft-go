@@ -42,8 +42,7 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 	res := make(chan []interface{})
 	var e error
 	go func() {
-		var buffer []byte
-		_, err := c.In.Read(buffer)
+		buffer, err := io.ReadAll(c.In)
 		if err != nil {
 			e = err
 			res <- []interface{}{}
