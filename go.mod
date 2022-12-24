@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/m4schini/logger v1.3.2
+	github.com/pkg/errors v0.8.1
 	go.uber.org/zap v1.23.0
 )
 

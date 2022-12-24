@@ -60,7 +60,7 @@ func ComputerLabel(ctx context.Context, conn connection.Connection) (string, err
 		return "", errors.New("something went wrong")
 	}
 
-	label, ok := res[0].(float64)
+	label, ok := res[0].(string)
 	if ok {
 		return fmt.Sprintf("%v", label), nil
 	}

@@ -4,10 +4,15 @@ import (
 	"context"
 )
 
-
-
 type nop struct {
+}
 
+func (n *nop) RemoteHost() string {
+	return ""
+}
+
+func (n *nop) Id() string {
+	return ""
 }
 
 func NewNopConnection() *nop {
@@ -20,6 +25,10 @@ func (n *nop) Execute(ctx context.Context, command string) ([]interface{}, error
 
 func (n *nop) Context() context.Context {
 	return context.Background()
+}
+
+func (n *nop) Device() DeviceType {
+	return ""
 }
 
 func (n *nop) Close() error {

@@ -11,26 +11,46 @@ import (
 	"strings"
 )
 
+type DeviceType string
+
+const (
+	DeviceComputer       = "c"
+	DevicePocketComputer = "p"
+	DeviceTurtle         = "t"
+)
+
 var log = logger.Named("connection").Sugar()
 
 type Connection interface {
 	Execute(ctx context.Context, command string) ([]interface{}, error)
 	Context() context.Context
+	Device() DeviceType
+	RemoteHost() string
+	Id() string
 	io.Closer
 }
 
 type HandshakeData struct {
-	Id    string
+	Id   string
 	Host string
+	Type DeviceType
 }
 
 type websocketConnection struct {
-	log *zap.SugaredLogger
-	ws          *websocket.Conn
-	messageCh   chan<- *Message
-	ctx context.Context
+	log        *zap.SugaredLogger
+	ws         *websocket.Conn
+	messageCh  chan<- *Message
+	ctx        context.Context
 	cancelFunc context.CancelFunc
 	_hsData    HandshakeData
+}
+
+func (w *websocketConnection) RemoteHost() string {
+	return w._hsData.Host
+}
+
+func (w *websocketConnection) Id() string {
+	return w._hsData.Id
 }
 
 func NewWebsocketConnection(ws *websocket.Conn, remoteAddr string) (*websocketConnection, error) {
@@ -65,7 +85,7 @@ func (w *websocketConnection) Context() context.Context {
 }
 
 func (w *websocketConnection) Execute(ctx context.Context, command string) ([]interface{}, error) {
-	log.Debugw("command execution started","command", command)
+	log.Debugw("command execution started", "command", command)
 	waitCh := make(chan []interface{})
 
 	var response []interface{}
@@ -78,7 +98,7 @@ func (w *websocketConnection) Execute(ctx context.Context, command string) ([]in
 	select {
 	case <-ctx.Done():
 		err := ctx.Err()
-		log.Errorw("command execution failed","error", err)
+		log.Errorw("command execution failed", "error", err)
 		return nil, err
 	case response = <-waitCh:
 		log.Debugw("command execution succeeded")
@@ -86,8 +106,8 @@ func (w *websocketConnection) Execute(ctx context.Context, command string) ([]in
 	}
 }
 
-func (w *websocketConnection) Handshake() HandshakeData {
-	return w._hsData
+func (w *websocketConnection) Device() DeviceType {
+	return w._hsData.Type
 }
 
 func (w *websocketConnection) Close() error {
@@ -119,10 +139,20 @@ func handleHandshake(log *zap.SugaredLogger, wsc *websocketConnection, remoteAdd
 		log.Warnw("handshake message didn't contain id")
 	}
 
+	t, ok := handshakeMessage["type"]
+	if !ok {
+		return HandshakeData{}, fmt.Errorf("corrupt handshake")
+	}
+	typeAsStr, ok := t.(string)
+	if !ok {
+		return HandshakeData{}, UnexpectedDatatypeErr
+	}
+
 	log.Debugw("handshake succeeded", "turtleId", idAsInt)
 	return HandshakeData{
-		Id: fmt.Sprintf("%v", idAsInt),
+		Id:   fmt.Sprintf("%v", idAsInt),
 		Host: strings.Split(remoteAddr, ":")[0],
+		Type: DeviceType(typeAsStr),
 	}, nil
 }
 
@@ -133,7 +163,7 @@ type Message struct {
 
 type ConnError struct {
 	Message *Message
-	err   error
+	err     error
 }
 
 func (c *ConnError) Error() string {
@@ -215,4 +245,3 @@ func startConnectionLoop(ctx context.Context, hs HandshakeData, ws *websocket.Co
 
 	return messageCh
 }
-
