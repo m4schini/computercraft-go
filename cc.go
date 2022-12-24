@@ -11,14 +11,16 @@ import (
 var knownComputer = make(map[string]connection.Client)
 var knownComputerMu sync.Mutex
 
-func New(ws *websocket.Conn, remoteAddr string) (any, error) {
+// New creates a device from a websocket. If a new device was created, the bool return is true
+func New(ws *websocket.Conn, remoteAddr string) (any, bool, error) {
 	conn, err := connection.NewWebsocketConnection(ws, remoteAddr)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
 	var client connection.Client
 	var ok bool
+	var unknown bool
 	key := fmt.Sprintf("%v#%v", conn.RemoteHost(), conn.Id())
 	knownComputerMu.Lock()
 	client, ok = knownComputer[key]
@@ -26,19 +28,21 @@ func New(ws *websocket.Conn, remoteAddr string) (any, error) {
 		client = connection.NewClient()
 		knownComputer[key] = client
 		knownComputerMu.Unlock()
+		unknown = true
 		client.SetConnection(conn)
 	} else {
 		knownComputerMu.Unlock()
+		unknown = false
 		client.SetConnection(conn)
 	}
 
 	switch conn.Device() {
 	case connection.DeviceComputer:
-		return computer.NewComputer(client), nil
+		return computer.NewComputer(client), unknown, nil
 	case connection.DevicePocketComputer:
 		panic("not implemented")
 	case connection.DeviceTurtle:
-		return computer.NewTurtle(client), nil
+		return computer.NewTurtle(client), unknown, nil
 	default:
 		panic("unknown device type")
 	}
