@@ -11,14 +11,20 @@ import (
 var log = logger.Named("adapter")
 
 type reader struct {
-	conn *websocket.Conn
-	buf  bytes.Buffer
+	conn        *websocket.Conn
+	buf         bytes.Buffer
+	readMessage bool
 }
 
 func (r *reader) Read(p []byte) (int, error) {
 	n, err := r.buf.Read(p)
 	if err == io.EOF {
+		if r.readMessage {
+			r.readMessage = false
+			return n, err
+		}
 		_, res, err := r.conn.ReadMessage()
+		r.readMessage = true
 		if err == io.EOF {
 			return n, err
 		}
