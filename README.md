@@ -22,7 +22,7 @@ func main() {
 		fmt.Println(turtle)
 	})
   
-  // callback for disconnected turtles
+  // callback for disconnected turtle
   computercraft.OnTurtleDisconnected(func(remoteAddr, uuid string, turtle computer.Turtle) {
     fmt.Println(turtle)
 	})
