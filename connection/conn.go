@@ -8,14 +8,14 @@ import (
 )
 
 type conn struct {
-	In        io.Reader
-	Out       io.Writer
+	In        <-chan []byte
+	Out       chan<- []byte
 	closer    io.Closer
 	ctx       context.Context
 	handshake HandshakeData
 }
 
-func New(ctx context.Context, in io.Reader, out io.Writer, closer io.Closer) *conn {
+func New(ctx context.Context, in <-chan []byte, out chan<- []byte, closer io.Closer) *conn {
 	c := &conn{
 		In:     in,
 		Out:    out,
@@ -34,7 +34,7 @@ func (c *conn) send(f string) error {
 		return err
 	}
 
-	_, err = c.Out.Write(bytes)
+	c.Out <- bytes
 	return err
 }
 
@@ -42,14 +42,9 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 	res := make(chan []interface{})
 	var e error
 	go func() {
-		buffer, err := io.ReadAll(c.In)
-		if err != nil {
-			e = err
-			res <- []interface{}{}
-		}
-
+		buffer := <-c.In
 		response := make([]interface{}, 0)
-		err = json.Unmarshal(buffer, &response)
+		err := json.Unmarshal(buffer, &response)
 		if err != nil {
 			e = err
 			res <- []interface{}{}
@@ -66,13 +61,10 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 
 func (c *conn) doHandshake() HandshakeData {
 	var data = HandshakeData{}
-	buffer, err := io.ReadAll(c.In)
-	if err != nil {
-		return data
-	}
+	buffer := <-c.In
 
 	var msg = make(map[string]interface{})
-	err = json.Unmarshal(buffer, &msg)
+	err := json.Unmarshal(buffer, &msg)
 	if err != nil {
 		return data
 	}

@@ -1,68 +1,41 @@
 package adapter
 
 import (
-	"bytes"
-	"fmt"
+	"encoding/json"
 	"github.com/gorilla/websocket"
 	"github.com/m4schini/logger"
-	"io"
 )
 
-var log = logger.Named("adapter")
+var log = logger.Named("adapter").Sugar()
 
-type reader struct {
-	conn        *websocket.Conn
-	buf         bytes.Buffer
-	readMessage bool
-}
+func ReaderFromWebsocket(conn *websocket.Conn) <-chan []byte {
+	ch := make(chan []byte, 8)
+	go func() {
+		for {
+			_, msg, err := conn.ReadMessage()
+			if err != nil {
+				return
+			}
 
-func (r *reader) Read(p []byte) (int, error) {
-	n, err := r.buf.Read(p)
-	if err == io.EOF {
-		if r.readMessage {
-			r.readMessage = false
-			return n, err
+			if !json.Valid(msg) {
+				log.Warnw("incoming websocket message is not json", "payloadSize", len(msg), "remoteAddr", conn.RemoteAddr())
+			}
+
+			ch <- msg
 		}
-		_, res, err := r.conn.ReadMessage()
-		r.readMessage = true
-		if err == io.EOF {
-			return n, err
+	}()
+	return ch
+}
+
+func WriterFromWebsocket(conn *websocket.Conn) chan<- []byte {
+	ch := make(chan []byte, 8)
+	go func() {
+		for msg := range ch {
+			err := conn.WriteMessage(websocket.TextMessage, msg)
+			if err != nil {
+				log.Warnw("Websocket message failed", "err", err)
+			}
 		}
-		if err != nil {
-			return n, err
-		}
-		r.buf.Write(res)
-		return n, nil
-	}
-	return n, err
-}
-
-func (r *reader) Close() error {
-	return r.conn.Close()
-}
-
-func ReaderFromWebsocket(conn *websocket.Conn) io.ReadCloser {
-	r := &reader{}
-	r.conn = conn
-	return r
-}
-
-type writer struct {
-	conn *websocket.Conn
-}
-
-func (w *writer) Write(p []byte) (n int, err error) {
-	l := len(p)
-	log.Debug(fmt.Sprintf("writing bytes (%v) to websocket", l))
-	return l, w.conn.WriteMessage(websocket.TextMessage, p)
-}
-
-func (w *writer) Close() error {
-	return w.conn.Close()
-}
-
-func WriterFromWebsocket(conn *websocket.Conn) io.WriteCloser {
-	w := &writer{}
-	w.conn = conn
-	return w
+	}()
+	return ch
 }
