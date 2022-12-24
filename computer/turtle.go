@@ -96,6 +96,10 @@ func NewTurtle(client connection.Client) *turtle {
 	return t
 }
 
+func (t *turtle) Online() bool {
+	return t.client.Online()
+}
+
 func (t *turtle) Close() error {
 	t.Shutdown()
 	return t.client.Connection().Close()
@@ -153,22 +157,22 @@ func (t *turtle) Back() (bool, error) {
 
 func (t *turtle) Up() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.up()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.up()")
 }
 
 func (t *turtle) Down() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.down()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.down()")
 }
 
 func (t *turtle) TurnLeft() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.turnLeft()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.turnLeft()")
 }
 
 func (t *turtle) TurnRight() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.turnRight()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.turnRight()")
 }
 
 func (t *turtle) _detect(command string) bool {
@@ -198,65 +202,65 @@ func (t *turtle) DetectDown() bool {
 
 func (t *turtle) Dig() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.dig()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.dig()")
 }
 
 func (t *turtle) DigDown() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.digDown()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.digDown()")
 }
 
 func (t *turtle) DigUp() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.digUp()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.digUp()")
 }
 
 func (t *turtle) Place() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.place()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.place()")
 }
 
 func (t *turtle) PlaceUp() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.placeUp()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.placeUp()")
 
 }
 
 func (t *turtle) PlaceDown() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.placeDown()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.placeDown()")
 
 }
 
 func (t *turtle) Drop(count int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.drop(%v)", count))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.drop(%v)", count))
 
 }
 
 func (t *turtle) DropUp(count int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.dropUp(%v)", count))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.dropUp(%v)", count))
 }
 
 func (t *turtle) DropDown(count int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.dropDown(%v)", count))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.dropDown(%v)", count))
 }
 
 func (t *turtle) Select(slot int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.select(%v)", slot))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.select(%v)", slot))
 }
 
 func (t *turtle) SelectedSlot() (int, error) {
 	conn := t.client.Connection()
-	return connection.DoActionInt(conn.Context(), conn,"turtle.getSelectedSlot()")
+	return connection.DoActionInt(conn.Context(), conn, "turtle.getSelectedSlot()")
 }
 
 func (t *turtle) ItemCount(slot int) (int, error) {
 	conn := t.client.Connection()
-	return connection.DoActionInt(conn.Context(), conn,fmt.Sprintf("turtle.getItemCount(%v)", slot))
+	return connection.DoActionInt(conn.Context(), conn, fmt.Sprintf("turtle.getItemCount(%v)", slot))
 }
 
 func (t *turtle) ItemSpace(slot int) (int, error) {
@@ -271,77 +275,77 @@ func (t *turtle) ItemDetail(slot int, detailed bool) (map[string]interface{}, er
 
 func (t *turtle) CompareTo(slot int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.compareTo(%v)", slot))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.compareTo(%v)", slot))
 }
 
 func (t *turtle) TransferTo(slot, count int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.transferTo(%v,%v)", slot, count))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.transferTo(%v,%v)", slot, count))
 }
 
 func (t *turtle) Compare() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.compare()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.compare()")
 }
 
 func (t *turtle) CompareUp() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.compareUp()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.compareUp()")
 
 }
 
 func (t *turtle) CompareDown() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.compareDown()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.compareDown()")
 
 }
 
 func (t *turtle) Attack() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.attack()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.attack()")
 
 }
 
 func (t *turtle) AttackUp() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.attackUp()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.attackUp()")
 
 }
 
 func (t *turtle) AttackDown() (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,"turtle.attackDown()")
+	return connection.DoActionBool(conn.Context(), conn, "turtle.attackDown()")
 
 }
 
 func (t *turtle) Suck(count int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.suck(%v)", count))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.suck(%v)", count))
 }
 
 func (t *turtle) SuckUp(count int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.suckUp(%v)", count))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.suckUp(%v)", count))
 }
 
 func (t *turtle) SuckDown(count int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.suckDown(%v)", count))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.suckDown(%v)", count))
 }
 
 func (t *turtle) FuelLevel() (int, error) {
 	conn := t.client.Connection()
-	return connection.DoActionInt(conn.Context(), conn,"turtle.getFuelLevel()")
+	return connection.DoActionInt(conn.Context(), conn, "turtle.getFuelLevel()")
 }
 
 func (t *turtle) Refuel(count int) (bool, error) {
 	conn := t.client.Connection()
-	return connection.DoActionBool(conn.Context(), conn,fmt.Sprintf("turtle.refuel(%v)", count))
+	return connection.DoActionBool(conn.Context(), conn, fmt.Sprintf("turtle.refuel(%v)", count))
 }
 
 func (t *turtle) FuelLimit() (int, error) {
 	conn := t.client.Connection()
-	return connection.DoActionInt(conn.Context(), conn,"turtle.getFuelLimit()")
+	return connection.DoActionInt(conn.Context(), conn, "turtle.getFuelLimit()")
 }
 
 func (t *turtle) _doInspect(command string) (bool, Block, error) {
@@ -401,7 +405,6 @@ func (t *turtle) _doLocate(timeout time.Duration, debug bool) (int, int, int, er
 	if err != nil {
 		return 0, 0, 0, connection.RpcError(err)
 	}
-
 
 	if len(res) == 0 {
 		return 0, 0, 0, errors.New("position could not be established")

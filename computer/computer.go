@@ -17,6 +17,7 @@ type Computer interface {
 
 	Uptime() (time.Duration, error)
 	Time() (float64, error)
+	Online() bool
 }
 
 type computer struct {
@@ -27,6 +28,10 @@ func NewComputer(client connection.Client) *computer {
 	c := new(computer)
 	c.client = client
 	return c
+}
+
+func (c *computer) Online() bool {
+	return c.client.Online()
 }
 
 func (c *computer) Shutdown() error {
