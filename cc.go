@@ -14,9 +14,9 @@ var knownComputer = make(map[string]connection.Client)
 var knownComputerMu sync.Mutex
 
 // New creates a device from a websocket. If a new device was created, the bool return is true
-func New(ws *websocket.Conn, remoteAddr string) (any, bool, error) {
+func New(ctx context.Context, ws *websocket.Conn) (any, bool, error) {
 	conn := connection.New(
-		context.Background(),
+		ctx,
 		adapter.ReaderFromWebsocket(ws),
 		adapter.WriterFromWebsocket(ws),
 		ws,
