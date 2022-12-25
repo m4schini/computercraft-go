@@ -7,6 +7,7 @@ import (
 	"github.com/m4schini/logger"
 	"go.uber.org/zap"
 	"io"
+	"sync"
 )
 
 type DeviceType string
@@ -41,6 +42,7 @@ type conn struct {
 	closer    io.Closer
 	ctx       context.Context
 	handshake HandshakeData
+	mu        sync.Mutex
 }
 
 func New(ctx context.Context, in <-chan []byte, out chan<- []byte, closer io.Closer) *conn {
@@ -133,6 +135,8 @@ func (c *conn) doHandshake() HandshakeData {
 func (c *conn) Execute(ctx context.Context, command string) (response []interface{}, err error) {
 	log.Infof("sending: %v", command)
 	defer log.Infof("received: %v (err=%v)", response, err)
+	c.mu.Lock()
+	defer c.mu.Unlock()
 	err = c.send(command)
 	if err != nil {
 		return nil, err
