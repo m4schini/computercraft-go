@@ -18,8 +18,16 @@ func DoActionBool(ctx context.Context, conn Connection, command string) (bool, e
 		}
 	}
 
+	if len(res) < 1 {
+		return false, RpcError(errors.New("unexpected data length"))
+	}
+
 	detect, ok := res[0].(bool)
-	return ok && detect, nil
+	if ok {
+		return detect, nil
+	} else {
+		return false, UnexpectedDatatypeErr
+	}
 }
 
 func DoActionInt(ctx context.Context, conn Connection, command string) (int, error) {
@@ -35,10 +43,14 @@ func DoActionInt(ctx context.Context, conn Connection, command string) (int, err
 		}
 	}
 
+	if len(res) < 1 {
+		return -1, RpcError(errors.New("unexpected data length"))
+	}
+
 	num, ok := res[0].(float64)
 	if ok {
 		return int(num), nil
 	} else {
-		return -1, errors.New("unexpected datatype")
+		return -1, UnexpectedDatatypeErr
 	}
 }
