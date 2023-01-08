@@ -1,79 +1,86 @@
 package computer
 
 import (
+	"context"
 	"github.com/m4schini/computercraft-go/computer/commands"
 	"github.com/m4schini/computercraft-go/connection"
 	"time"
 )
 
 type Computer interface {
-	Shutdown() error
-	Reboot() error
-	Version() (string, error)
+	Shutdown(ctx context.Context) error
+	Reboot(ctx context.Context) error
+	Version(ctx context.Context) (string, error)
 
-	ComputerId() (string, error)
-	ComputerLabel() (string, error)
-	SetComputerLabel(label string) error
+	ComputerId(ctx context.Context) (string, error)
+	ComputerLabel(ctx context.Context) (string, error)
+	SetComputerLabel(ctx context.Context, label string) error
 
-	Uptime() (time.Duration, error)
-	Time() (float64, error)
-	Online() bool
+	Uptime(ctx context.Context) (time.Duration, error)
+	Time(ctx context.Context) (float64, error)
+
+	IsTurtle(ctx context.Context) (bool, error)
+	IsPocket(ctx context.Context) (bool, error)
 }
 
 type computer struct {
-	client connection.Client
+	conn connection.Connection
 }
 
-func NewComputer(client connection.Client) *computer {
+func NewComputer(conn connection.Connection) *computer {
 	c := new(computer)
-	c.client = client
+	c.conn = conn
 	return c
 }
 
-func (c *computer) Online() bool {
-	return c.client.Online()
+func (c *computer) IsTurtle(ctx context.Context) (bool, error) {
+	return connection.DoActionBool(ctx, c.conn, "turtle ~= nil")
 }
 
-func (c *computer) Shutdown() error {
-	conn := c.client.Connection()
-	return commands.Shutdown(conn.Context(), conn)
+func (c *computer) IsPocket(ctx context.Context) (bool, error) {
+	return connection.DoActionBool(ctx, c.conn, "pocket ~= nil")
 }
 
-func (c *computer) Reboot() error {
-	conn := c.client.Connection()
-	return commands.Reboot(conn.Context(), conn)
+func (c *computer) Shutdown(ctx context.Context) error {
+	conn := c.conn
+	return commands.Shutdown(ctx, conn)
 }
 
-func (c *computer) Version() (string, error) {
-	conn := c.client.Connection()
-	return commands.Version(conn.Context(), conn)
+func (c *computer) Reboot(ctx context.Context) error {
+	conn := c.conn
+	return commands.Reboot(ctx, conn)
 }
 
-func (c *computer) ComputerId() (string, error) {
-	conn := c.client.Connection()
-	return commands.ComputerId(conn.Context(), conn)
+func (c *computer) Version(ctx context.Context) (string, error) {
+	conn := c.conn
+	return commands.Version(ctx, conn)
 }
 
-func (c *computer) ComputerLabel() (string, error) {
-	conn := c.client.Connection()
-	return commands.ComputerLabel(conn.Context(), conn)
+func (c *computer) ComputerId(ctx context.Context) (string, error) {
+	conn := c.conn
+	return commands.ComputerId(ctx, conn)
 }
 
-func (c *computer) SetComputerLabel(label string) error {
-	conn := c.client.Connection()
-	return commands.SetComputerLabel(conn.Context(), conn, label)
+func (c *computer) ComputerLabel(ctx context.Context) (string, error) {
+	conn := c.conn
+	return commands.ComputerLabel(ctx, conn)
 }
 
-func (c *computer) Uptime() (time.Duration, error) {
-	conn := c.client.Connection()
-	return commands.Uptime(conn.Context(), conn)
+func (c *computer) SetComputerLabel(ctx context.Context, label string) error {
+	conn := c.conn
+	return commands.SetComputerLabel(ctx, conn, label)
 }
 
-func (c *computer) Time() (float64, error) {
-	conn := c.client.Connection()
-	return commands.Time(conn.Context(), conn)
+func (c *computer) Uptime(ctx context.Context) (time.Duration, error) {
+	conn := c.conn
+	return commands.Uptime(ctx, conn)
+}
+
+func (c *computer) Time(ctx context.Context) (float64, error) {
+	conn := c.conn
+	return commands.Time(ctx, conn)
 }
 
 func (c *computer) Close() error {
-	return c.client.Connection().Close()
+	return c.conn.Close()
 }

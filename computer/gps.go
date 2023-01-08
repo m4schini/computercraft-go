@@ -1,8 +1,11 @@
 package computer
 
-import "time"
+import (
+	"context"
+	"time"
+)
 
 type GPS interface {
-	Locate() (int, int, int, error)
-	LocateWithTimeout(timeout time.Duration) (int, int, int, error)
+	Locate(ctx context.Context) (int, int, int, error)
+	LocateWithTimeout(ctx context.Context, timeout time.Duration) (int, int, int, error)
 }

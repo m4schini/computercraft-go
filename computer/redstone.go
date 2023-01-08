@@ -1,5 +1,7 @@
 package computer
 
+import "context"
+
 type Side string
 
 const (
@@ -13,11 +15,11 @@ const (
 
 type Redstoner interface {
 	//SetOutput turns the redstone signal of a specific side on or off.
-	SetOutput(side Side, on bool) error
+	SetOutput(ctx context.Context, side Side, on bool) error
 	//SetAnalogOutput sets the redstone signal strength for a specific side.
-	SetAnalogOutput(side Side, value int) error
+	SetAnalogOutput(ctx context.Context, side Side, value int) error
 	//Output gets the current redstone output of a specific side.
-	Output(side Side) (bool, int, error)
+	Output(ctx context.Context, side Side) (bool, int, error)
 	//Input gets the current redstone input of a specific side.
-	Input(side Side) error
+	Input(ctx context.Context, side Side) error
 }

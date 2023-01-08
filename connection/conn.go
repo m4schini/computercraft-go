@@ -10,50 +10,26 @@ import (
 	"sync"
 )
 
-type DeviceType string
-
-const (
-	DeviceComputer       = "c"
-	DevicePocketComputer = "p"
-	DeviceTurtle         = "t"
-)
-
 var log = logger.Named("connection").Sugar()
 
 type Connection interface {
 	Execute(ctx context.Context, command string) ([]interface{}, error)
-	Context() context.Context
-	Device() DeviceType
-	RemoteHost() string
-	Id() string
 	io.Closer
 }
-
-type HandshakeData struct {
-	Id   string
-	Host string
-	Type DeviceType
-}
-
 type conn struct {
-	In        <-chan []byte
-	Out       chan<- []byte
-	log       *zap.SugaredLogger
-	closer    io.Closer
-	ctx       context.Context
-	handshake HandshakeData
-	mu        sync.Mutex
+	In     <-chan []byte
+	Out    chan<- []byte
+	log    *zap.SugaredLogger
+	closer io.Closer
+	mu     sync.Mutex
 }
 
-func New(ctx context.Context, in <-chan []byte, out chan<- []byte, closer io.Closer) *conn {
+func New(in <-chan []byte, out chan<- []byte, closer io.Closer) *conn {
 	c := &conn{
 		In:     in,
 		Out:    out,
 		closer: closer,
-		ctx:    ctx,
 	}
-	c.handshake = c.doHandshake()
-	c.log = log.With("host", c.handshake.Host, "id", c.handshake.Id, "type", c.handshake.Type)
 	return c
 }
 
@@ -94,76 +70,24 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 		return r, e
 	case <-ctx.Done():
 		err := ctx.Err()
-		c.log.Debugw("receiving message failed", "err", err)
+		c.log.Debugw("waiting for incoming message timed out!", "err", err)
 		return []interface{}{}, err
 	}
 }
 
-func (c *conn) doHandshake() HandshakeData {
-	var data = HandshakeData{}
-	buffer := <-c.In
-
-	var msg = make(map[string]interface{})
-	err := json.Unmarshal(buffer, &msg)
-	if err != nil {
-		return data
-	}
-
-	_id, ok := msg["id"]
-	if !ok {
-		return data
-	}
-	id, ok := _id.(float64)
-	if !ok {
-		return data
-	}
-	data.Id = fmt.Sprintf("%v", id)
-
-	_t, ok := msg["type"]
-	if !ok {
-		return data
-	}
-	t, ok := _t.(string)
-	if !ok {
-		return data
-	}
-	data.Type = DeviceType(t)
-
-	return data
-}
-
 func (c *conn) Execute(ctx context.Context, command string) (response []interface{}, err error) {
-	log.Infof("sending: %v", command)
-	defer log.Infof("received: %v (err=%v)", response, err)
+	c.log.Infof("Execute Started: %v", command)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	err = c.send(command)
 	if err != nil {
+		c.log.Errorw("Execute Failed", "err", err)
 		return nil, err
 	}
 
 	response, err = c.receive(ctx)
+	c.log.Infof("Execute Finished: %+v (error: %v)", response, err)
 	return response, err
-}
-
-func (c *conn) Context() context.Context {
-	if c.ctx == nil {
-		return context.Background()
-	}
-
-	return c.ctx
-}
-
-func (c *conn) Device() DeviceType {
-	return c.handshake.Type
-}
-
-func (c *conn) RemoteHost() string {
-	return c.handshake.Host
-}
-
-func (c *conn) Id() string {
-	return c.handshake.Id
 }
 
 func (c *conn) Close() error {

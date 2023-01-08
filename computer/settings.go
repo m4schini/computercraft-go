@@ -1,5 +1,7 @@
 package computer
 
+import "context"
+
 type SettingsOption struct {
 	description string
 	defaultVal  string
@@ -7,13 +9,13 @@ type SettingsOption struct {
 }
 
 type Settings interface {
-	Define(name string, option ...SettingsOption) error
-	Undefine(name string) error
-	Set(name, value string) error
-	Unset(name string) error
-	Get(name string) (string, error)
-	Clear() error
-	Names() ([]string, error)
-	Load(path string) (bool, error)
-	Save(path string) (bool, error)
+	Define(ctx context.Context, name string, option ...SettingsOption) error
+	Undefine(ctx context.Context, name string) error
+	Set(ctx context.Context, name, value string) error
+	Unset(ctx context.Context, name string) error
+	Get(ctx context.Context, name string) (string, error)
+	Clear(ctx context.Context) error
+	Names(ctx context.Context) ([]string, error)
+	Load(ctx context.Context, path string) (bool, error)
+	Save(ctx context.Context, path string) (bool, error)
 }

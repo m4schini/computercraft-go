@@ -14,6 +14,8 @@ func ReaderFromWebsocket(conn *websocket.Conn) <-chan []byte {
 		for {
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
+				//TODO check if this is enough error handling
+				log.Warnw("Websocket message failed", "err", err)
 				return
 			}
 
@@ -33,7 +35,9 @@ func WriterFromWebsocket(conn *websocket.Conn) chan<- []byte {
 		for msg := range ch {
 			err := conn.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
+				//TODO check if this is enough error handling
 				log.Warnw("Websocket message failed", "err", err)
+				return
 			}
 		}
 	}()
