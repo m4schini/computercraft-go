@@ -1,5 +1,4 @@
 local addr = ""
-local deviceType = ""
 
 function log(prefix, message)
     local div = " : "
@@ -22,12 +21,11 @@ function setup()
     else
         config = setupFromUser()
         local file = fs.open(".config", "w")
-        file.write(textutils.serialiseJzzSON(config))
+        file.write(textutils.serialiseJSON(config))
         file.close()
     end
 
     addr = "ws://" .. config["host"] .. "/api/ws"
-    deviceType = config["type"]
 
     print("INITIALIZATION COMPLETE:")
     print(textutils.serialise(config))

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/m4schini/computercraft-go/computer/commands"
 	"github.com/m4schini/computercraft-go/connection"
+	"go.uber.org/multierr"
 	"io"
 	"time"
 )
@@ -108,7 +109,8 @@ func (t *turtle) IsPocket(ctx context.Context) (bool, error) {
 func (t *turtle) Close() error {
 	ctx, stop := context.WithTimeout(context.Background(), 1*time.Second)
 	defer stop()
-	return errors.Join(
+
+	return multierr.Combine(
 		t.Shutdown(ctx),
 		t.conn.Close(),
 	)
