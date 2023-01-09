@@ -14,7 +14,3 @@ func NewNopConnection() *nop {
 func (n *nop) Execute(ctx context.Context, command string) ([]interface{}, error) {
 	return []interface{}{0}, nil
 }
-
-func (n *nop) Close() error {
-	return nil
-}

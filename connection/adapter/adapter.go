@@ -8,10 +8,11 @@ import (
 
 var log = logger.Named("adapter").Sugar()
 
-func ReaderFromWebsocket(conn *websocket.Conn) <-chan []byte {
+func ReaderFromWebsocket(conn *websocket.Conn) (in <-chan []byte, stop func()) {
+	var closed = false
 	ch := make(chan []byte, 8)
 	go func() {
-		for {
+		for !closed {
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
 				//TODO check if this is enough error handling
@@ -26,10 +27,13 @@ func ReaderFromWebsocket(conn *websocket.Conn) <-chan []byte {
 			ch <- msg
 		}
 	}()
-	return ch
+	return ch, func() {
+		close(ch)
+		closed = true
+	}
 }
 
-func WriterFromWebsocket(conn *websocket.Conn) chan<- []byte {
+func WriterFromWebsocket(conn *websocket.Conn) (out chan<- []byte) {
 	ch := make(chan []byte, 8)
 	go func() {
 		for msg := range ch {

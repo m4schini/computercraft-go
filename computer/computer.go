@@ -80,7 +80,3 @@ func (c *computer) Time(ctx context.Context) (float64, error) {
 	conn := c.conn
 	return commands.Time(ctx, conn)
 }
-
-func (c *computer) Close() error {
-	return c.conn.Close()
-}

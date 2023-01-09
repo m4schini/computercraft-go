@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"github.com/m4schini/computercraft-go/computer/commands"
 	"github.com/m4schini/computercraft-go/connection"
-	"go.uber.org/multierr"
-	"io"
 	"time"
 )
 
@@ -82,7 +80,6 @@ type Turtle interface {
 	//Craft crafts a recipe based on the turtle's inventory.
 	Craft(ctx context.Context, limit int) (bool, error)
 
-	io.Closer
 	Computer
 	Settings
 	GPS
@@ -104,16 +101,6 @@ func (t *turtle) IsTurtle(ctx context.Context) (bool, error) {
 
 func (t *turtle) IsPocket(ctx context.Context) (bool, error) {
 	return connection.DoActionBool(ctx, t.conn, "pocket ~= nil")
-}
-
-func (t *turtle) Close() error {
-	ctx, stop := context.WithTimeout(context.Background(), 1*time.Second)
-	defer stop()
-
-	return multierr.Combine(
-		t.Shutdown(ctx),
-		t.conn.Close(),
-	)
 }
 
 func (t *turtle) Shutdown(ctx context.Context) error {

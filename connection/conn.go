@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/m4schini/logger"
 	"go.uber.org/zap"
-	"io"
 	"sync"
 )
 
@@ -14,35 +13,33 @@ var log = logger.Named("connection").Sugar()
 
 type Connection interface {
 	Execute(ctx context.Context, command string) ([]interface{}, error)
-	io.Closer
-}
-type conn struct {
-	In     <-chan []byte
-	Out    chan<- []byte
-	log    *zap.SugaredLogger
-	closer io.Closer
-	mu     sync.Mutex
 }
 
-func New(in <-chan []byte, out chan<- []byte, closer io.Closer) *conn {
+type conn struct {
+	In  <-chan []byte
+	Out chan<- []byte
+	log *zap.SugaredLogger
+	mu  sync.Mutex
+}
+
+func New(in <-chan []byte, out chan<- []byte) *conn {
 	c := &conn{
-		In:     in,
-		Out:    out,
-		closer: closer,
+		In:  in,
+		Out: out,
+		log: log,
 	}
 	return c
 }
 
-func (c *conn) send(f string) error {
-	c.log.Debugf("sending instruction: \"%v\"", f)
-	bytes, err := json.Marshal(map[string]any{
-		"func": fmt.Sprintf("return {%s}", f),
-	})
-	if err != nil {
-		return err
-	}
+func (c *conn) send(f string) (err error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = fmt.Errorf("%v", x)
+		}
+	}()
 
-	c.Out <- bytes
+	c.log.Debugf("sending instruction: \"%v\"", f)
+	c.Out <- []byte(fmt.Sprintf(`{"func": "return {%s}"}`, f))
 	c.log.Debugf("send instruction \"%v\"", f)
 	return err
 }
@@ -52,10 +49,18 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 	res := make(chan []interface{})
 	var e error
 	go func() {
-		buffer := <-c.In
+		buffer, ok := <-c.In
+		if !ok {
+			c.log.Warn("tried to receive response on closed channel")
+			e = ClosedChannelErr
+			res <- []interface{}{}
+			return
+		}
+
 		response := make([]interface{}, 0)
 		err := json.Unmarshal(buffer, &response)
 		if err != nil {
+			c.log.Error(err)
 			e = err
 			res <- []interface{}{}
 		}
@@ -88,13 +93,4 @@ func (c *conn) Execute(ctx context.Context, command string) (response []interfac
 	response, err = c.receive(ctx)
 	c.log.Infof("Execute Finished: %+v (error: %v)", response, err)
 	return response, err
-}
-
-func (c *conn) Close() error {
-	c.log.Warn("closing connection")
-	if c.closer != nil {
-		return c.closer.Close()
-	}
-
-	return nil
 }
