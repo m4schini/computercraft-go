@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/m4schini/logger"
 	"go.uber.org/zap"
 	"sync"
+	"time"
 )
 
 var log = logger.Named("connection").Sugar()
@@ -26,7 +28,7 @@ func New(in <-chan []byte, out chan<- []byte) *conn {
 	c := &conn{
 		In:  in,
 		Out: out,
-		log: log,
+		log: log.With("connId", uuid.New().String()),
 	}
 	return c
 }
@@ -81,16 +83,19 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 }
 
 func (c *conn) Execute(ctx context.Context, command string) (response []interface{}, err error) {
-	c.log.Infof("Execute Started: %v", command)
+	start := time.Now()
+	log := c.log.With("executionId", uuid.New().String())
+	log.Infof("Execution started: %v", command)
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	err = c.send(command)
 	if err != nil {
-		c.log.Errorw("Execute Failed", "err", err)
+		log.Errorw("Execution failed", "err", err)
 		return nil, err
 	}
 
 	response, err = c.receive(ctx)
-	c.log.Infof("Execute Finished: %+v (error: %v)", response, err)
+	log.Infow(fmt.Sprintf("Execute completed: %+v (error: %v)", response, err),
+		"duration", time.Since(start))
 	return response, err
 }

@@ -11,13 +11,19 @@ var log = logger.Named("adapter").Sugar()
 func ReaderFromWebsocket(conn *websocket.Conn) (in <-chan []byte, stop func()) {
 	var closed = false
 	ch := make(chan []byte, 8)
+
+	closeF := func() {
+		close(ch)
+		closed = true
+	}
+
 	go func() {
 		for !closed {
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
 				//TODO check if this is enough error handling
 				log.Warnw("Websocket message failed", "err", err)
-				return
+				break
 			}
 
 			if !json.Valid(msg) {
@@ -26,11 +32,10 @@ func ReaderFromWebsocket(conn *websocket.Conn) (in <-chan []byte, stop func()) {
 
 			ch <- msg
 		}
+
+		closeF()
 	}()
-	return ch, func() {
-		close(ch)
-		closed = true
-	}
+	return ch, closeF
 }
 
 func WriterFromWebsocket(conn *websocket.Conn) (out chan<- []byte) {
