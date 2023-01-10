@@ -1,33 +1,15 @@
 # computercraft-go
-go libary that hosts a weboscket server to interact with computers from the computercraft mod in minecraft.
-
-not every tweaked.cc api is implemented
+computercraft-go provides a websocket based protocol to remotely communicate with
+computercraft computers (and turtles, and pocket-computers). Either via a 
+[gorilla websocket](github.com/gorilla/websocket) or go channels.
 
 ## Getting Started
-1. Install runtime on computercraft turtle
+Install runtime on computercraft device
 ```
-pastebin get MV4wjTRA startup
+pastebin get VsFAwY74 startup
 ```
 
-2. Start computercraft-go endpoint
-```go
-import (
-  "github.com/m4schini/computercraft-go"
-  "fmt"
-)
-
-func main() {
-  // callback for connected turtles
-  computercraft.OnTurtleConnected(func(remoteAddr, uuid string, turtle computer.Turtle) {
-		fmt.Println(turtle)
-	})
-  
-  // callback for disconnected turtle
-  computercraft.OnTurtleDisconnected(func(remoteAddr, uuid string, turtle computer.Turtle) {
-    fmt.Println(turtle)
-	})
-  
-  // serve entry point
-  computercraft.Serve("0.0.0.0:8080")
-}
+Install computercraft-go
+```
+go get github.com/m4schini/computercraft-go
 ```
