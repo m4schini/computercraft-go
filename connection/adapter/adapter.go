@@ -18,6 +18,13 @@ func ReaderFromWebsocket(conn *websocket.Conn) (in <-chan []byte, stop func()) {
 	}
 
 	go func() {
+		defer func() {
+			x := recover()
+			if x != nil {
+				log.Warnf("%v: %v", conn.RemoteAddr(), x)
+			}
+		}()
+
 		for !closed {
 			_, msg, err := conn.ReadMessage()
 			if err != nil {
