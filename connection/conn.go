@@ -5,35 +5,34 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/m4schini/logger"
 	"go.uber.org/zap"
 	"sync"
 	"time"
 )
 
-var log = logger.Named("connection").Sugar()
-
 type Connection interface {
-	Execute(ctx context.Context, command string) ([]interface{}, error)
+	Execute(ctx context.Context, command string) (res []interface{}, err error)
 }
 
-type conn struct {
+type connection struct {
 	In  <-chan []byte
 	Out chan<- []byte
 	log *zap.SugaredLogger
 	mu  sync.Mutex
 }
 
-func New(in <-chan []byte, out chan<- []byte) *conn {
-	c := &conn{
+func New(in <-chan []byte, out chan<- []byte, opts ...Option) (conn *connection) {
+	o := ParseOptions(opts)
+
+	c := &connection{
 		In:  in,
 		Out: out,
-		log: log.With("connId", uuid.New().String()),
+		log: o.Log.With("connId", uuid.New().String()),
 	}
 	return c
 }
 
-func (c *conn) send(f string) (err error) {
+func (c *connection) send(f string) (err error) {
 	defer func() {
 		if x := recover(); x != nil {
 			err = fmt.Errorf("%v", x)
@@ -46,7 +45,7 @@ func (c *conn) send(f string) (err error) {
 	return err
 }
 
-func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
+func (c *connection) receive(ctx context.Context) ([]interface{}, error) {
 	c.log.Debug("waiting for incoming message")
 	res := make(chan []interface{})
 	var e error
@@ -82,7 +81,7 @@ func (c *conn) receive(ctx context.Context) ([]interface{}, error) {
 	}
 }
 
-func (c *conn) Execute(ctx context.Context, command string) (response []interface{}, err error) {
+func (c *connection) Execute(ctx context.Context, command string) (response []interface{}, err error) {
 	start := time.Now()
 	log := c.log.With("executionId", uuid.New().String())
 	log.Infof("Execution started: %v", command)

@@ -7,7 +7,7 @@ import (
 type nop struct {
 }
 
-func NewNopConnection() *nop {
+func NewNopConnection() (conn *nop) {
 	return new(nop)
 }
 

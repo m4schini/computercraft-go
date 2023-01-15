@@ -3,12 +3,12 @@ package adapter
 import (
 	"encoding/json"
 	"github.com/gorilla/websocket"
-	"github.com/m4schini/logger"
 )
 
-var log = logger.Named("adapter").Sugar()
+func ReaderFromWebsocket(conn *websocket.Conn, opts ...Option) (in <-chan []byte, stop func()) {
+	o := parseOptions(opts)
+	log := o.log
 
-func ReaderFromWebsocket(conn *websocket.Conn) (in <-chan []byte, stop func()) {
 	var closed = false
 	ch := make(chan []byte, 8)
 
@@ -45,7 +45,10 @@ func ReaderFromWebsocket(conn *websocket.Conn) (in <-chan []byte, stop func()) {
 	return ch, closeF
 }
 
-func WriterFromWebsocket(conn *websocket.Conn) (out chan<- []byte) {
+func WriterFromWebsocket(conn *websocket.Conn, opts ...Option) (out chan<- []byte) {
+	o := parseOptions(opts)
+	log := o.log
+
 	ch := make(chan []byte, 8)
 	go func() {
 		for msg := range ch {
