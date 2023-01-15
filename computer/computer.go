@@ -33,11 +33,11 @@ func NewComputer(conn connection.Connection) *computer {
 	return c
 }
 
-func (c *computer) IsTurtle(ctx context.Context) (bool, error) {
+func (c *computer) IsTurtle(ctx context.Context) (isTurtle bool, err error) {
 	return connection.DoActionBool(ctx, c.conn, "turtle ~= nil")
 }
 
-func (c *computer) IsPocket(ctx context.Context) (bool, error) {
+func (c *computer) IsPocket(ctx context.Context) (isPocket bool, err error) {
 	return connection.DoActionBool(ctx, c.conn, "pocket ~= nil")
 }
 
@@ -51,17 +51,17 @@ func (c *computer) Reboot(ctx context.Context) error {
 	return commands.Reboot(ctx, conn)
 }
 
-func (c *computer) Version(ctx context.Context) (string, error) {
+func (c *computer) Version(ctx context.Context) (version string, err error) {
 	conn := c.conn
 	return commands.Version(ctx, conn)
 }
 
-func (c *computer) ComputerId(ctx context.Context) (string, error) {
+func (c *computer) ComputerId(ctx context.Context) (id string, err error) {
 	conn := c.conn
 	return commands.ComputerId(ctx, conn)
 }
 
-func (c *computer) ComputerLabel(ctx context.Context) (string, error) {
+func (c *computer) ComputerLabel(ctx context.Context) (label string, err error) {
 	conn := c.conn
 	return commands.ComputerLabel(ctx, conn)
 }
@@ -71,12 +71,12 @@ func (c *computer) SetComputerLabel(ctx context.Context, label string) error {
 	return commands.SetComputerLabel(ctx, conn, label)
 }
 
-func (c *computer) Uptime(ctx context.Context) (time.Duration, error) {
+func (c *computer) Uptime(ctx context.Context) (uptime time.Duration, err error) {
 	conn := c.conn
 	return commands.Uptime(ctx, conn)
 }
 
-func (c *computer) Time(ctx context.Context) (float64, error) {
+func (c *computer) Time(ctx context.Context) (t float64, err error) {
 	conn := c.conn
 	return commands.Time(ctx, conn)
 }
