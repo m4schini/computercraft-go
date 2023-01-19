@@ -297,8 +297,22 @@ func (t *turtle) ItemSpace(ctx context.Context, slot int) (space int, err error)
 }
 
 func (t *turtle) ItemDetail(ctx context.Context, slot int, detailed bool) (map[string]interface{}, error) {
-	//TODO implement me
-	panic("implement me")
+	conn := t.conn
+	response, err := conn.Execute(ctx, fmt.Sprintf(`turtle.getItemDetail(%v, %v)`, slot, detailed))
+	if err != nil {
+		return nil, err
+	}
+
+	if len(response) < 1 {
+		return nil, errors.New("unexpected data length")
+	}
+
+	slotdata, ok := response[0].(map[string]interface{})
+	if !ok {
+		return nil, connection.UnexpectedDatatypeErr
+	}
+
+	return slotdata, nil
 }
 
 func (t *turtle) CompareTo(ctx context.Context, slot int) (same bool, err error) {
