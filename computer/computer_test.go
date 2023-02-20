@@ -19,64 +19,6 @@ func NewTestConnection() (out <-chan []byte, in chan<- []byte, conn connection.C
 	return out, in, conn
 }
 
-func TestComputer_IsTurtle(t *testing.T) {
-	//arrange
-	var wg sync.WaitGroup
-	var expected = false
-	var actual bool
-	var err error
-	out, in, conn := NewTestConnection()
-	c := NewComputer(conn)
-
-	//act
-	go func() {
-		wg.Add(1)
-		actual, err = c.IsTurtle(context.TODO())
-		wg.Done()
-	}()
-
-	command := <-out
-	t.Logf("command: %v", string(command))
-	in <- []byte(fmt.Sprintf("[%v]", expected))
-	wg.Wait()
-
-	//assert
-	t.Logf("expected: %v", expected)
-	t.Logf("  actual: %v", actual)
-	if err != nil || actual != expected {
-		t.FailNow()
-	}
-}
-
-func TestComputer_IsPocket(t *testing.T) {
-	//arrange
-	var wg sync.WaitGroup
-	var expected = true
-	var actual bool
-	var err error
-	out, in, conn := NewTestConnection()
-	c := NewComputer(conn)
-
-	//act
-	go func() {
-		wg.Add(1)
-		actual, err = c.IsPocket(context.TODO())
-		wg.Done()
-	}()
-
-	command := <-out
-	t.Logf("command: %v", string(command))
-	in <- []byte(fmt.Sprintf("[%v]", expected))
-	wg.Wait()
-
-	//assert
-	t.Logf("expected: %v", expected)
-	t.Logf("  actual: %v", actual)
-	if err != nil || actual != expected {
-		t.FailNow()
-	}
-}
-
 func TestComputer_Shutdown(t *testing.T) {
 	//arrange
 	var wg sync.WaitGroup

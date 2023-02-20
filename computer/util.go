@@ -9,7 +9,7 @@ import (
 type ModuleNotPresentError string
 
 func (m ModuleNotPresentError) Error() string {
-	return fmt.Sprintf("module (%v) not present", m)
+	return fmt.Sprintf("module (%v) not present", string(m))
 }
 
 func HasModule(conn connection.Connection, ctx context.Context, moduleName string) error {
