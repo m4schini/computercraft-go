@@ -14,7 +14,9 @@ import (
 var upgrader = websocket.Upgrader{} // use default options
 
 func main() {
+	log.Println("starting...")
 	http.HandleFunc("/api/ws", func(w http.ResponseWriter, r *http.Request) {
+		log.Println("received request")
 		ctx := context.TODO()
 		ws, err := upgrader.Upgrade(w, r, nil)
 		if err != nil {
@@ -32,6 +34,7 @@ func main() {
 		go StripMine(computer.NewTurtle(conn), 30)
 		w.WriteHeader(http.StatusOK)
 	})
+	log.Println("started")
 	err := http.ListenAndServe("[::]:8080", nil)
 	if err != nil {
 		log.Fatalln(err)
