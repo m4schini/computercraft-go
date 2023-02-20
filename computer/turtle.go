@@ -4,116 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/m4schini/computercraft-go/computer/commands"
+	"github.com/m4schini/computercraft-go/computer/gps"
 	"github.com/m4schini/computercraft-go/connection"
 	"time"
 )
-
-type Turtle interface {
-	// Forward moves the turtle forward one block.
-	Forward(ctx context.Context) (bool, error)
-	// Back moves the turtle backwards one block.
-	Back(ctx context.Context) (bool, error)
-	// Up moves the turtle up one block.
-	Up(ctx context.Context) (bool, error)
-	// Down moves the turtle down one block.
-	Down(ctx context.Context) (bool, error)
-	// TurnLeft rotates the turtle 90 degrees to the left.
-	TurnLeft(ctx context.Context) (bool, error)
-	// TurnRight rotates the turtle 90 degrees to the right.
-	TurnRight(ctx context.Context) (bool, error)
-
-	// Dig attempts to break the block in front of the turtle.
-	Dig(ctx context.Context) (bool, error)
-	// DigDown attempts to break the block below the turtle.
-	DigDown(ctx context.Context) (bool, error)
-	// DigUp attempts to break the block above the turtle.
-	DigUp(ctx context.Context) (bool, error)
-
-	// Place places a block or item into the world in front of the turtle.
-	Place(ctx context.Context) (bool, error)
-	// PlaceUp places a block or item into the world above the turtle.
-	PlaceUp(ctx context.Context) (bool, error)
-	// PlaceDown places a block or item into the world below the turtle.
-	PlaceDown(ctx context.Context) (bool, error)
-
-	// Drop drops the currently selected stack into the inventory in front of
-	//the turtle, or as an item into the world if there is no inventory.
-	Drop(ctx context.Context, count int) (bool, error)
-	// DropUp drops the currently selected stack into the inventory above the
-	//turtle, or as an item into the world if there is no inventory.
-	DropUp(ctx context.Context, count int) (bool, error)
-	// DropDown drops the currently selected stack into the inventory in front
-	//of the turtle, or as an item into the world if there is no inventory.
-	DropDown(ctx context.Context, count int) (bool, error)
-
-	// Select changes the currently selected slot.
-	Select(ctx context.Context, slot int) (bool, error)
-	// SelectedSlot gets the currently selected slot.
-	SelectedSlot(ctx context.Context) (int, error)
-	// ItemCount gets the number of items in the given slot.
-	ItemCount(ctx context.Context, slot int) (int, error)
-	// ItemSpace gets the remaining number of items which may be stored in this stack.
-	ItemSpace(ctx context.Context, slot int) (int, error)
-	// ItemDetail gets detailed information about the items in the given slot.
-	ItemDetail(ctx context.Context, slot int, detailed bool) (map[string]interface{}, error)
-	// CompareTo compares the item in the currently selected slot to the item in another slot.
-	CompareTo(ctx context.Context, slot int) (bool, error)
-	// TransferTo moves an item from the selected slot to another one.
-	TransferTo(ctx context.Context, slot, count int) (bool, error)
-
-	// Detect checks if there is a solid block in front of the turtle. In this case,
-	//solid refers to any non-air or liquid block.
-	Detect(ctx context.Context) bool
-	// DetectUp checks if there is a solid block above the turtle. In this case,
-	//solid refers to any non-air or liquid block.
-	DetectUp(ctx context.Context) bool
-	// DetectDown checks if there is a solid block below the turtle. In this case,
-	//solid refers to any non-air or liquid block.
-	DetectDown(ctx context.Context) bool
-
-	// Compare checks if the block in front of the turtle is equal to the item in the currently selected slot.
-	Compare(ctx context.Context) (bool, error)
-	// CompareUp checks if the block above the turtle is equal to the item in the currently selected slot.
-	CompareUp(ctx context.Context) (bool, error)
-	// CompareDown checks if the block below the turtle is equal to the item in the currently selected slot.
-	CompareDown(ctx context.Context) (bool, error)
-
-	// Attack attacks the entity in front of the turtle.
-	Attack(ctx context.Context) (bool, error)
-	// AttackUp attacks the entity above the turtle.
-	AttackUp(ctx context.Context) (bool, error)
-	// AttackDown attacks the entity below the turtle.
-	AttackDown(ctx context.Context) (bool, error)
-
-	// Suck sucks an item from the inventory in front of the turtle, or from an item floating in the world.
-	Suck(ctx context.Context, count int) (bool, error)
-	// SuckUp sucks an item from the inventory above the turtle, or from an item floating in the world.
-	SuckUp(ctx context.Context, count int) (bool, error)
-	// SuckDown sucks an item from the inventory below the turtle, or from an item floating in the world.
-	SuckDown(ctx context.Context, count int) (bool, error)
-
-	// FuelLevel gets the maximum amount of fuel this turtle currently holds.
-	FuelLevel(ctx context.Context) (int, error)
-	// Refuel refuels this turtle
-	Refuel(ctx context.Context, count int) (bool, error)
-	// FuelLimit gets the maximum amount of fuel this turtle can hold.
-	FuelLimit(ctx context.Context) (int, error)
-
-	// Inspect gets information about the block in front of the turtle.
-	Inspect(ctx context.Context) (bool, Block, error)
-	// InspectUp gets information about the block above the turtle.
-	InspectUp(ctx context.Context) (bool, Block, error)
-	// InspectDown gets information about the block below the turtle.
-	InspectDown(ctx context.Context) (bool, Block, error)
-
-	// Craft crafts a recipe based on the turtle's inventory.
-	Craft(ctx context.Context, limit int) (bool, error)
-
-	Computer
-	Settings
-	GPS
-}
 
 type turtle struct {
 	conn connection.Connection
@@ -134,43 +28,35 @@ func (t *turtle) IsPocket(ctx context.Context) (isPocket bool, err error) {
 }
 
 func (t *turtle) Shutdown(ctx context.Context) error {
-	conn := t.conn
-	return commands.Shutdown(ctx, conn)
+	return Shutdown(ctx, t.conn)
 }
 
 func (t *turtle) Reboot(ctx context.Context) error {
-	conn := t.conn
-	return commands.Reboot(ctx, conn)
+	return Reboot(ctx, t.conn)
 }
 
 func (t *turtle) Version(ctx context.Context) (version string, err error) {
-	conn := t.conn
-	return commands.Version(ctx, conn)
+	return Version(ctx, t.conn)
 }
 
 func (t *turtle) ComputerId(ctx context.Context) (id string, err error) {
-	conn := t.conn
-	return commands.ComputerId(ctx, conn)
+	return ComputerId(ctx, t.conn)
 }
 
 func (t *turtle) ComputerLabel(ctx context.Context) (label string, err error) {
-	conn := t.conn
-	return commands.ComputerLabel(ctx, conn)
+	return ComputerLabel(ctx, t.conn)
 }
 
 func (t *turtle) SetComputerLabel(ctx context.Context, label string) error {
-	conn := t.conn
-	return commands.SetComputerLabel(ctx, conn, label)
+	return SetComputerLabel(ctx, t.conn, label)
 }
 
 func (t *turtle) Uptime(ctx context.Context) (uptime time.Duration, err error) {
-	conn := t.conn
-	return commands.Uptime(ctx, conn)
+	return Uptime(ctx, t.conn)
 }
 
 func (t *turtle) Time(ctx context.Context) (time float64, err error) {
-	conn := t.conn
-	return commands.Time(ctx, conn)
+	return Time(ctx, t.conn)
 }
 
 func (t *turtle) Forward(ctx context.Context) (success bool, err error) {
@@ -438,48 +324,12 @@ func (t *turtle) Craft(ctx context.Context, limit int) (success bool, err error)
 	return connection.DoActionBool(ctx, conn, fmt.Sprintf("turtle.craft(%v)", limit))
 }
 
-func (t *turtle) _doLocate(ctx context.Context, timeout time.Duration, debug bool) (int, int, int, error) {
-	conn := t.conn
-	res, err := conn.Execute(
-		ctx,
-		fmt.Sprintf("gps.locate(%v, %v)", int(timeout.Seconds()), debug),
-	)
-	if err != nil {
-		return 0, 0, 0, connection.RpcError(err)
-	}
-
-	if len(res) == 0 {
-		return 0, 0, 0, errors.New("position could not be established")
-	}
-
-	if len(res) < 3 {
-		return 0, 0, 0, errors.New("position could not be established")
-	}
-
-	x, ok := res[0].(float64)
-	if !ok {
-		return 0, 0, 0, connection.UnexpectedDatatypeErr
-	}
-
-	y, ok := res[1].(float64)
-	if !ok {
-		return 0, 0, 0, connection.UnexpectedDatatypeErr
-	}
-
-	z, ok := res[2].(float64)
-	if !ok {
-		return 0, 0, 0, connection.UnexpectedDatatypeErr
-	}
-
-	return int(x), int(y), int(z), nil
-}
-
 func (t *turtle) Locate(ctx context.Context) (x int, y int, z int, err error) {
-	return t._doLocate(ctx, 2*time.Second, false)
+	return gps.Locate(ctx, t.conn)
 }
 
 func (t *turtle) LocateWithTimeout(ctx context.Context, timeout time.Duration) (x int, y int, z int, err error) {
-	return t._doLocate(ctx, timeout, false)
+	return gps.LocateWithTimeout(ctx, t.conn, timeout)
 }
 
 func (t *turtle) Define(ctx context.Context, name string, option ...SettingsOption) error {

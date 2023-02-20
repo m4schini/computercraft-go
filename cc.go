@@ -1,16 +1,18 @@
 package computercraft
 
 import (
-	"context"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/m4schini/computercraft-go/computer"
 	"github.com/m4schini/computercraft-go/connection"
 	"github.com/m4schini/computercraft-go/connection/adapter"
-	"time"
 )
 
-// NewFromWebsocket creates a device from a websocket. If a new device was created, the bool return is true
-func NewFromWebsocket(ws *websocket.Conn, opts ...connection.Option) (_ computer.Computer, err error) {
+// NewConnectionFromWebsocket creates a device from a websocket. If a new device was created, the bool return is true
+func NewConnectionFromWebsocket(ws *websocket.Conn, opts ...connection.Option) (_ connection.Connection, err error) {
+	if ws == nil {
+		return nil, fmt.Errorf("ws cannot be nil")
+	}
 	o := connection.ParseOptions(opts)
 	log := o.Log.Desugar()
 
@@ -23,10 +25,10 @@ func NewFromWebsocket(ws *websocket.Conn, opts ...connection.Option) (_ computer
 		return nil
 	})
 
-	return New(in, out, opts...)
+	return NewConnection(in, out, opts...)
 }
 
-// New uses a channel for incoming messages and outgoing messages.
+// NewConnection uses a channel for incoming messages and outgoing messages.
 // A `Message` means a valid json object/array.
 // Incoming Messages are an array containing the return values of a lua function.
 //
@@ -34,24 +36,39 @@ func NewFromWebsocket(ws *websocket.Conn, opts ...connection.Option) (_ computer
 //
 // Outgoing Messages are an object with a "func" key and a value that that is lua code
 // e.g. {"func": "return {turtle != nil}"}
-func New(incomingMessages <-chan []byte, outgoingMessages chan<- []byte, opts ...connection.Option) (_ computer.Computer, err error) {
+func NewConnection(incomingMessages <-chan []byte, outgoingMessages chan<- []byte, opts ...connection.Option) (_ connection.Connection, err error) {
+	if incomingMessages == nil || outgoingMessages == nil {
+		return nil, fmt.Errorf("required parameter was nil")
+	}
 	conn := connection.New(
 		incomingMessages,
 		outgoingMessages,
 		opts...,
 	)
 
-	ctx, stop := context.WithTimeout(context.Background(), 4*time.Second)
-	defer stop()
+	return conn, nil
+}
 
-	c := computer.NewComputer(conn)
-	if isTurtle, err := c.IsTurtle(ctx); err == nil && isTurtle {
-		return computer.NewTurtle(conn), nil
+func NewComputer(conn connection.Connection) (computer.Computer, error) {
+	if conn == nil {
+		return nil, fmt.Errorf("connection is nil")
 	}
 
-	if isPocket, err := c.IsPocket(ctx); err == nil && isPocket {
-		panic("not implemented")
+	panic("not implemented")
+}
+
+func NewTurtle(conn connection.Connection) (computer.Turtle, error) {
+	if conn == nil {
+		return nil, fmt.Errorf("connection is nil")
 	}
 
-	return c, nil
+	panic("not implemented")
+}
+
+func NewPocket(conn connection.Connection) (computer.Computer, error) {
+	if conn == nil {
+		return nil, fmt.Errorf("connection is nil")
+	}
+
+	panic("not implemented")
 }

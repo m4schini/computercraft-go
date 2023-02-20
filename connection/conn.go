@@ -11,7 +11,7 @@ import (
 )
 
 type Connection interface {
-	Execute(ctx context.Context, command string) (res []interface{}, err error)
+	Execute(ctx context.Context, command string) (response []any, err error)
 }
 
 type connection struct {
@@ -83,7 +83,9 @@ func (c *connection) receive(ctx context.Context) ([]interface{}, error) {
 
 func (c *connection) Execute(ctx context.Context, command string) (response []interface{}, err error) {
 	start := time.Now()
-	log := c.log.With("executionId", uuid.New().String())
+	executionId := uuid.New().String()
+	ctx = context.WithValue(ctx, "executionId", executionId)
+	log := c.log.With("executionId", executionId)
 	log.Infof("Execution started: %v", command)
 	c.mu.Lock()
 	defer c.mu.Unlock()

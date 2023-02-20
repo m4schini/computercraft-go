@@ -3,6 +3,7 @@ package connection
 import (
 	"context"
 	"fmt"
+	"github.com/m4schini/logger"
 	"sync"
 	"testing"
 )
@@ -15,7 +16,7 @@ func TestConn_Execute(t *testing.T) {
 	var err error
 	in := make(chan []byte)
 	out := make(chan []byte)
-	conn := New(in, out)
+	conn := New(in, out, WithLog(logger.Named("test")))
 
 	//act
 	wg.Add(1)

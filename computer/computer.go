@@ -2,25 +2,113 @@ package computer
 
 import (
 	"context"
-	"github.com/m4schini/computercraft-go/computer/commands"
+	"errors"
+	"fmt"
 	"github.com/m4schini/computercraft-go/connection"
 	"time"
 )
 
-type Computer interface {
-	Shutdown(ctx context.Context) error
-	Reboot(ctx context.Context) error
-	Version(ctx context.Context) (string, error)
+func Shutdown(ctx context.Context, conn connection.Connection) error {
+	_, err := conn.Execute(ctx, "os.shutdown()")
+	return err
+}
 
-	ComputerId(ctx context.Context) (string, error)
-	ComputerLabel(ctx context.Context) (string, error)
-	SetComputerLabel(ctx context.Context, label string) error
+func Reboot(ctx context.Context, conn connection.Connection) error {
+	_, err := conn.Execute(ctx, "os.reboot()")
+	return err
+}
 
-	Uptime(ctx context.Context) (time.Duration, error)
-	Time(ctx context.Context) (float64, error)
+func Version(ctx context.Context, conn connection.Connection) (string, error) {
+	res, err := conn.Execute(ctx, "os.version()")
+	if err != nil {
+		return "", err
+	}
 
-	IsTurtle(ctx context.Context) (bool, error)
-	IsPocket(ctx context.Context) (bool, error)
+	version, ok := res[0].(string)
+	if ok {
+		return version, nil
+	} else {
+		return "", connection.UnexpectedDatatypeErr
+	}
+}
+
+func ComputerId(ctx context.Context, conn connection.Connection) (string, error) {
+	res, err := conn.Execute(ctx, "os.getComputerID()")
+	if err != nil {
+		return "", connection.RpcError(err)
+	}
+
+	if len(res) != 1 {
+		return "", errors.New("something went wrong")
+	}
+
+	label, ok := res[0].(float64)
+	if ok {
+		return fmt.Sprintf("%v", label), nil
+	}
+
+	return "", connection.UnexpectedDatatypeErr
+}
+
+func ComputerLabel(ctx context.Context, conn connection.Connection) (string, error) {
+	res, err := conn.Execute(ctx, "os.getComputerLabel()")
+	if err != nil {
+		return "", connection.RpcError(err)
+	}
+
+	if len(res) != 1 {
+		return "", errors.New("something went wrong")
+	}
+
+	label, ok := res[0].(string)
+	if ok {
+		return fmt.Sprintf("%v", label), nil
+	}
+
+	return "", connection.UnexpectedDatatypeErr
+}
+
+func SetComputerLabel(ctx context.Context, conn connection.Connection, label string) error {
+	var err error
+	if label == "" {
+		_, err = conn.Execute(ctx, "os.setComputerLabel()")
+	} else {
+		_, err = conn.Execute(ctx, fmt.Sprintf("os.setComputerLabel(\"%v\")", label))
+	}
+
+	if err != nil {
+		return connection.RpcError(err)
+	} else {
+		return nil
+	}
+}
+
+func Uptime(ctx context.Context, conn connection.Connection) (time.Duration, error) {
+	res, err := conn.Execute(ctx, "os.clock()")
+	if err != nil {
+		return 0, connection.RpcError(err)
+	}
+
+	uptime, ok := res[0].(float64)
+	if !ok {
+		return 0, connection.UnexpectedDatatypeErr
+	}
+
+	return time.Duration(uptime) * time.Second, nil
+}
+
+func Time(ctx context.Context, conn connection.Connection) (float64, error) {
+	res, err := conn.Execute(ctx, "os.time()")
+	if err != nil {
+		return 0, connection.RpcError(err)
+	}
+
+	tme, ok := res[0].(float64)
+	if !ok {
+		return 0, connection.RpcError(err)
+	}
+
+	return tme, nil
 }
 
 type computer struct {
@@ -33,50 +121,34 @@ func NewComputer(conn connection.Connection) *computer {
 	return c
 }
 
-func (c *computer) IsTurtle(ctx context.Context) (isTurtle bool, err error) {
-	return connection.DoActionBool(ctx, c.conn, "turtle ~= nil")
-}
-
-func (c *computer) IsPocket(ctx context.Context) (isPocket bool, err error) {
-	return connection.DoActionBool(ctx, c.conn, "pocket ~= nil")
-}
-
 func (c *computer) Shutdown(ctx context.Context) error {
-	conn := c.conn
-	return commands.Shutdown(ctx, conn)
+	return Shutdown(ctx, c.conn)
 }
 
 func (c *computer) Reboot(ctx context.Context) error {
-	conn := c.conn
-	return commands.Reboot(ctx, conn)
+	return Reboot(ctx, c.conn)
 }
 
 func (c *computer) Version(ctx context.Context) (version string, err error) {
-	conn := c.conn
-	return commands.Version(ctx, conn)
+	return Version(ctx, c.conn)
 }
 
 func (c *computer) ComputerId(ctx context.Context) (id string, err error) {
-	conn := c.conn
-	return commands.ComputerId(ctx, conn)
+	return ComputerId(ctx, c.conn)
 }
 
 func (c *computer) ComputerLabel(ctx context.Context) (label string, err error) {
-	conn := c.conn
-	return commands.ComputerLabel(ctx, conn)
+	return ComputerLabel(ctx, c.conn)
 }
 
 func (c *computer) SetComputerLabel(ctx context.Context, label string) error {
-	conn := c.conn
-	return commands.SetComputerLabel(ctx, conn, label)
+	return SetComputerLabel(ctx, c.conn, label)
 }
 
 func (c *computer) Uptime(ctx context.Context) (uptime time.Duration, err error) {
-	conn := c.conn
-	return commands.Uptime(ctx, conn)
+	return Uptime(ctx, c.conn)
 }
 
 func (c *computer) Time(ctx context.Context) (t float64, err error) {
-	conn := c.conn
-	return commands.Time(ctx, conn)
+	return Time(ctx, c.conn)
 }
